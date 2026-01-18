@@ -9,6 +9,9 @@ import { rewardGameWin } from './services/economyService';
 import { getInventory, usePowerup, PowerupInventory, PowerupType, consumeCoinBoost, isCoinBoostActive } from './services/powerupService';
 import { logGameSession } from './services/cloudSyncService';
 import { logUserVisit, logGameStart, logGameWin, logModeChange, logShopOpen } from './services/analyticsService';
+import { initNotifications } from './services/notificationService';
+import { initExperiments } from './services/abTestService';
+import { checkReferralBonuses, checkUrlForReferral } from './services/referralService';
 import { haptic } from './services/hapticService';
 import { Tile } from './components/Tile';
 import { Modal } from './components/Modal';
@@ -29,6 +32,7 @@ import { DailyRewardModal } from './components/DailyRewardModal';
 import { ShopModal } from './components/ShopModal';
 import { PowerupBar } from './components/PowerupBar';
 import { ConfettiCanvas } from './components/Confetti';
+import { AdminDashboard } from './components/AdminDashboard';
 import { canClaimReward } from './services/rewardService';
 import { TRANSLATIONS, Language } from './constants/translations';
 import { DailyStats, DailyTheme, TileType, WinAnalysis, PlayerProfile, DailyMission, CampaignLevel, CampaignProgress, GameMode, GridPos } from './types';
@@ -81,6 +85,7 @@ const App: React.FC = () => {
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showRewards, setShowRewards] = useState(canClaimReward());
     const [showShop, setShowShop] = useState(false);
+    const [showAdmin, setShowAdmin] = useState(false);
     const [stats, setStats] = useState<DailyStats>({ streak: 0, lastPlayed: '', history: {}, completedMissions: [] });
     const [missions, setMissions] = useState<DailyMission[]>([]);
 
@@ -97,6 +102,29 @@ const App: React.FC = () => {
     const t = TRANSLATIONS[lang];
 
     // --- Effects ---
+
+    // Initialize services on mount
+    useEffect(() => {
+        // Initialize notifications
+        initNotifications();
+
+        // Initialize A/B experiments
+        initExperiments().catch(err => console.warn('[App] Experiments init failed:', err));
+
+        // Check for referral bonuses
+        checkReferralBonuses().then(bonus => {
+            if (bonus > 0) {
+                console.log(`[App] Claimed ${bonus} coins from referrals`);
+            }
+        });
+
+        // Check URL for referral code
+        const refCode = checkUrlForReferral();
+        if (refCode) {
+            console.log('[App] Referral code from URL:', refCode);
+            // Could show a modal to use the code
+        }
+    }, []);
 
     // Load Stats, Theme, Missions + Log User Visit
     useEffect(() => {
@@ -162,6 +190,18 @@ const App: React.FC = () => {
         wasLoadedAsWonRef.current = false;
         prevIsWonRef.current = false;
     }, [currentKey]);
+
+    // Admin Dashboard keyboard shortcut (Ctrl + Shift + A)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                setShowAdmin(true);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Win Handler
     useEffect(() => {
@@ -666,6 +706,11 @@ const App: React.FC = () => {
                     />
                 </>
             )}
+            {/* Admin Dashboard - Access with Ctrl + Shift + A */}
+            <AdminDashboard
+                isOpen={showAdmin}
+                onClose={() => setShowAdmin(false)}
+            />
         </div>
     );
 };
