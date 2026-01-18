@@ -2,6 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import { setupGlobalErrorHandler } from './services/errorService';
+
+// Setup global error tracking
+setupGlobalErrorHandler();
 
 // PWA Service Worker Logic
 if ('serviceWorker' in navigator) {
@@ -30,8 +35,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { getPerformanceSettings, FrameRateLimiter } from '../../utils/performanceUtils';
 
 interface Particle {
     x: number;
@@ -26,7 +27,7 @@ interface ConfettiEffectProps {
 export const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
     active,
     duration = 3000,
-    particleCount = 100,
+    particleCount: baseparticleCount = 100,
     colors,
     onComplete
 }) => {
@@ -35,6 +36,13 @@ export const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
     const animationRef = useRef<number>(0);
     const isActiveRef = useRef(active);
     const startTimeRef = useRef<number>(0);
+    const frameRateLimiterRef = useRef(new FrameRateLimiter(30));
+
+    // Get optimized settings based on device performance
+    const perfSettings = useMemo(() => getPerformanceSettings(), []);
+    const particleCount = perfSettings.enableParticles
+        ? Math.min(baseparticleCount, perfSettings.confettiParticleCount)
+        : 0;
 
     // Get theme colors from CSS variables or use defaults
     const getColors = useCallback(() => {
@@ -121,7 +129,13 @@ export const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
+        // Frame rate limiting for performance
+        if (!frameRateLimiterRef.current.shouldRenderFrame()) {
+            animationRef.current = requestAnimationFrame(animate);
+            return;
+        }
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: false });
         if (!ctx) return;
 
         // Clear canvas
@@ -139,7 +153,7 @@ export const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
 
             // Fade out particles that are falling off screen
             if (particle.y > canvas.height * 0.8) {
-                particle.opacity -= 0.02;
+                particle.opacity -= 0.03; // Faster fade for performance
             }
 
             // Draw particle
@@ -177,17 +191,18 @@ export const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
             // Start animation
             animationRef.current = requestAnimationFrame(animate);
 
-            // Add more particles periodically during duration
+            // Add more particles periodically during duration (adjusted for device performance)
+            const addCount = perfSettings.enableParticles ? (perfSettings.reducedMotion ? 0 : 3) : 0;
             const addMoreInterval = setInterval(() => {
-                if (Date.now() - startTimeRef.current < duration && isActiveRef.current) {
+                if (Date.now() - startTimeRef.current < duration && isActiveRef.current && addCount > 0) {
                     const colorOptions = getColors();
-                    for (let i = 0; i < 5; i++) {
+                    for (let i = 0; i < addCount; i++) {
                         const x = Math.random() * canvas.width;
                         const y = -20;
                         particlesRef.current.push(createParticle(x, y, colorOptions));
                     }
                 }
-            }, 100);
+            }, perfSettings.particleAddInterval);
 
             return () => {
                 cancelAnimationFrame(animationRef.current);

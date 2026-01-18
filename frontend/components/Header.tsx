@@ -1,22 +1,25 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TRANSLATIONS, Language } from '../constants/translations';
-import { PlayerProfile, CampaignLevel } from '../types';
+import { PlayerProfile, CampaignLevel, GameMode } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { canClaimReward } from '../services/rewardService';
+import { getCoins } from '../services/economyService';
+import { StreakIndicator } from './StreakIndicator';
 
 interface HeaderProps {
     moves: number;
-    mode: string; // 'DAILY' | 'PRACTICE' | 'CAMPAIGN'
+    mode: GameMode;
     lang: Language;
     setLang: (l: Language) => void;
-    setMode: (m: 'DAILY' | 'PRACTICE' | 'CAMPAIGN') => void;
+    setMode: (m: GameMode) => void;
     onOpenProfile: () => void;
     onOpenTheme: () => void;
     onOpenSettings: () => void;
     onOpenLeaderboard: () => void;
     onOpenAchievements: () => void;
     onOpenRewards: () => void;
+    onOpenShop: () => void;
     profile: PlayerProfile;
     campaignLevel?: CampaignLevel | null;
     currentStars?: number; // 0-3 for current run
@@ -24,12 +27,20 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
     moves, mode, lang, setLang, setMode,
-    onOpenProfile, onOpenTheme, onOpenSettings, onOpenLeaderboard, onOpenAchievements, onOpenRewards,
+    onOpenProfile, onOpenTheme, onOpenSettings, onOpenLeaderboard, onOpenAchievements, onOpenRewards, onOpenShop,
     profile, campaignLevel, currentStars
 }) => {
     const t = TRANSLATIONS[lang];
     const { mode: themeMode } = useTheme();
     const hasReward = canClaimReward();
+    const [coins, setCoins] = useState(getCoins());
+
+    // Refresh coins on mount and when visible
+    useEffect(() => {
+        setCoins(getCoins());
+        const interval = setInterval(() => setCoins(getCoins()), 2000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <header
@@ -112,6 +123,27 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                 </div>
                 <div className="text-right flex items-center gap-4">
+                    {/* Coin Display - Clickable to open shop */}
+                    <button
+                        onClick={onOpenShop}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all hover:scale-105"
+                        style={{
+                            backgroundColor: 'var(--color-bg-tertiary)',
+                            border: '1px solid var(--color-warning)',
+                        }}
+                        title={lang === 'tr' ? 'Mağaza' : 'Shop'}
+                    >
+                        <span className="text-sm">🪙</span>
+                        <span
+                            className="font-bold font-mono text-sm"
+                            style={{ color: 'var(--color-warning)' }}
+                        >
+                            {coins.toLocaleString()}
+                        </span>
+                    </button>
+
+                    {/* Streak Indicator */}
+                    <StreakIndicator compact onClick={onOpenRewards} />
                     {/* Level Indicator */}
                     <button onClick={onOpenProfile} className="flex flex-col items-end group">
                         <div className="flex items-center gap-2">
@@ -200,13 +232,20 @@ export const Header: React.FC<HeaderProps> = ({
                     className="flex p-1 rounded-lg backdrop-blur-sm mb-2"
                     style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
                 >
-                    {(['DAILY', 'PRACTICE', 'CAMPAIGN'] as const).map(m => {
+                    {(['DAILY', 'PRACTICE', 'CAMPAIGN', 'ENDLESS'] as const).map(m => {
                         const isActive = mode === m;
                         const bgColor = m === 'DAILY'
                             ? 'var(--color-accent-1)'
                             : m === 'CAMPAIGN'
                                 ? 'var(--color-warning)'
-                                : 'var(--color-accent-2)';
+                                : m === 'ENDLESS'
+                                    ? 'var(--color-success, #22c55e)'
+                                    : 'var(--color-accent-2)';
+
+                        const label = m === 'DAILY' ? t.modes.daily
+                            : m === 'CAMPAIGN' ? t.modes.campaign
+                                : m === 'ENDLESS' ? '∞'
+                                    : t.modes.practice;
 
                         return (
                             <button
@@ -217,8 +256,9 @@ export const Header: React.FC<HeaderProps> = ({
                                     backgroundColor: isActive ? bgColor : 'transparent',
                                     color: isActive ? 'var(--color-bg-primary)' : 'var(--color-text-muted)'
                                 }}
+                                title={m === 'ENDLESS' ? 'Endless Mode' : undefined}
                             >
-                                {m === 'DAILY' ? t.modes.daily : m === 'CAMPAIGN' ? t.modes.campaign : t.modes.practice}
+                                {label}
                             </button>
                         );
                     })}

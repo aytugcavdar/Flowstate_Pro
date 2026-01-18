@@ -14,6 +14,58 @@ let masterVolumeLevel = 0.8;
 let sfxVolumeLevel = 1.0;
 let musicVolumeLevel = 0.7;
 
+// Sound Pack System
+export type SoundPack = 'cyberpunk' | 'retro' | 'neon' | 'matrix';
+let currentSoundPack: SoundPack = 'cyberpunk';
+
+// Sound pack configurations
+const SOUND_PACKS: Record<SoundPack, {
+  droneFreq: number;
+  pulseType: OscillatorType;
+  rotateType: OscillatorType;
+  clickFreq: number;
+  powerFreq: number;
+  winNotes: number[];
+  filterQ: number;
+}> = {
+  cyberpunk: {
+    droneFreq: 55,
+    pulseType: 'sine',
+    rotateType: 'square',
+    clickFreq: 1200,
+    powerFreq: 220,
+    winNotes: [440, 554.37, 659.25, 880, 1108.73], // A Major
+    filterQ: 5
+  },
+  retro: {
+    droneFreq: 65.41, // C2
+    pulseType: 'square',
+    rotateType: 'square',
+    clickFreq: 800,
+    powerFreq: 261.63, // C4
+    winNotes: [261.63, 329.63, 392, 523.25, 659.25], // C Major
+    filterQ: 2
+  },
+  neon: {
+    droneFreq: 73.42, // D2
+    pulseType: 'triangle',
+    rotateType: 'triangle',
+    clickFreq: 1500,
+    powerFreq: 293.66, // D4
+    winNotes: [293.66, 369.99, 440, 587.33, 739.99], // D Major
+    filterQ: 8
+  },
+  matrix: {
+    droneFreq: 41.2, // E1 (deeper)
+    pulseType: 'sawtooth',
+    rotateType: 'sawtooth',
+    clickFreq: 600,
+    powerFreq: 164.81, // E3
+    winNotes: [164.81, 207.65, 246.94, 329.63, 415.3], // E Minor
+    filterQ: 3
+  }
+};
+
 export const initAudio = () => {
   if (isInitialized && audioCtx) return;
 
@@ -294,3 +346,35 @@ export const setMusicVolume = (value: number) => {
 export const getMasterVolume = () => masterVolumeLevel;
 export const getSFXVolume = () => sfxVolumeLevel;
 export const getMusicVolume = () => musicVolumeLevel;
+
+// --- Sound Pack Functions ---
+
+export const setSoundPack = (pack: SoundPack) => {
+  currentSoundPack = pack;
+  console.log('[Audio] Sound pack set to:', pack);
+  
+  // If ambience is playing, restart with new pack settings
+  if (droneNodes) {
+    stopAmbience();
+    setTimeout(() => startAmbience(), 100);
+  }
+};
+
+export const getSoundPack = () => currentSoundPack;
+
+export const getAvailableSoundPacks = (): SoundPack[] => {
+  return ['cyberpunk', 'retro', 'neon', 'matrix'];
+};
+
+// Map theme to sound pack
+export const setThemeSoundPack = (themeName: string) => {
+  const themeToSound: Record<string, SoundPack> = {
+    'cyberpunk': 'cyberpunk',
+    'retro': 'retro',
+    'neon': 'neon',
+    'matrix': 'matrix'
+  };
+  
+  const pack = themeToSound[themeName.toLowerCase()] || 'cyberpunk';
+  setSoundPack(pack);
+};

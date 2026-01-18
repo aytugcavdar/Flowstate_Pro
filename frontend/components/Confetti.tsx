@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { getPerformanceSettings } from '../utils/performanceUtils';
 
 interface Particle {
     x: number;
@@ -14,11 +15,17 @@ interface Particle {
 export const ConfettiCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    // Get optimized settings based on device performance
+    const perfSettings = useMemo(() => getPerformanceSettings(), []);
+
     useEffect(() => {
+        // Skip if particles disabled
+        if (!perfSettings.enableParticles) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: false });
         if (!ctx) return;
 
         // Resize canvas
@@ -29,10 +36,10 @@ export const ConfettiCanvas: React.FC = () => {
         window.addEventListener('resize', resize);
         resize();
 
-        // Config
+        // Config - reduced particle count based on device
         const particles: Particle[] = [];
         const colors = ['#22d3ee', '#e879f9', '#facc15', '#4ade80', '#ffffff'];
-        const count = 150;
+        const count = perfSettings.particleCount; // Dynamic count based on device
 
         // Initialize particles
         for (let i = 0; i < count; i++) {
@@ -89,7 +96,7 @@ export const ConfettiCanvas: React.FC = () => {
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationId);
         };
-    }, []);
+    }, [perfSettings]);
 
     return (
         <canvas

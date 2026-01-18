@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { TRANSLATIONS, Language } from '../constants/translations';
 import { BADGES } from '../services/progression';
 import { WinAnalysis, DailyMission } from '../types';
@@ -7,6 +7,58 @@ import { playSound } from '../services/audio';
 import { ConfettiEffect } from './effects/ConfettiEffect';
 import { ShareCardModal } from './ShareCardModal';
 import { ShareCardData } from '../services/shareService';
+import { getPerformanceSettings } from '../utils/performanceUtils';
+
+// Typewriter effect component for dramatic text reveal
+const TypewriterText: React.FC<{ text: string; speed?: number; onComplete?: () => void; className?: string }> = ({
+    text, speed = 30, onComplete, className = ""
+}) => {
+    const [displayedText, setDisplayedText] = useState("");
+    const [isComplete, setIsComplete] = useState(false);
+
+    useEffect(() => {
+        let index = 0;
+        const timer = setInterval(() => {
+            if (index < text.length) {
+                setDisplayedText(text.slice(0, index + 1));
+                index++;
+            } else {
+                clearInterval(timer);
+                setIsComplete(true);
+                onComplete?.();
+            }
+        }, speed);
+        return () => clearInterval(timer);
+    }, [text, speed, onComplete]);
+
+    return (
+        <span className={className}>
+            {displayedText}
+            {!isComplete && <span className="animate-pulse">▊</span>}
+        </span>
+    );
+};
+
+// Mode-specific story messages
+const getStoryIntro = (mode: string, lang: Language, streak?: number): { title: string; subtitle: string } => {
+    if (mode === 'CAMPAIGN') {
+        return lang === 'tr'
+            ? { title: "BÖLÜM TAMAMLANDI", subtitle: "Akış başarıyla yönlendirildi..." }
+            : { title: "CHAPTER COMPLETE", subtitle: "Flow successfully redirected..." };
+    }
+    if (mode === 'DAILY') {
+        const streakText = streak && streak > 1
+            ? (lang === 'tr' ? ` (${streak}. gün seri!)` : ` (${streak} day streak!)`)
+            : '';
+        return lang === 'tr'
+            ? { title: "GÜNLÜK GÖREV", subtitle: `Sistem güvenliği aşıldı${streakText}` }
+            : { title: "DAILY MISSION", subtitle: `System security bypassed${streakText}` };
+    }
+    // Practice mode
+    return lang === 'tr'
+        ? { title: "ANTRENMAN TAMAMLANDI", subtitle: "Yetenekler gelişiyor..." }
+        : { title: "TRAINING COMPLETE", subtitle: "Skills improving..." };
+};
 
 interface TerminalWinScreenProps {
     moves: number;
@@ -37,6 +89,10 @@ export const TerminalWinScreen: React.FC<TerminalWinScreenProps> = ({
     const [showConfetti, setShowConfetti] = useState(true);
     const [showShareModal, setShowShareModal] = useState(false);
 
+    // Performance settings
+    const perfSettings = getPerformanceSettings();
+    const storyIntro = getStoryIntro(mode, lang, streak);
+
     // Prepare share card data
     const shareCardData: ShareCardData = {
         moves,
@@ -49,24 +105,41 @@ export const TerminalWinScreen: React.FC<TerminalWinScreenProps> = ({
         xpGained,
     };
 
-    const addLine = (content: React.ReactNode) => {
+    const addLine = useCallback((content: React.ReactNode) => {
         setLines(prev => [...prev, content]);
-        playSound('click');
+        if (!perfSettings.reducedMotion) {
+            playSound('click');
+        }
         if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    };
+    }, [perfSettings.reducedMotion]);
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
         const sequence = async () => {
             const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-            await wait(500);
+            // Mode-specific dramatic intro
+            await wait(300);
+            addLine(
+                <div className="text-center mb-4 space-y-1">
+                    <div className="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400 animate-pulse">
+                        {storyIntro.title}
+                    </div>
+                    <TypewriterText
+                        text={storyIntro.subtitle}
+                        speed={40}
+                        className="text-xs text-slate-400 italic"
+                    />
+                </div>
+            );
+
+            await wait(800);
             addLine(<div className="text-xs text-slate-500 border-b border-slate-700 pb-1 mb-2">--- {t.terminal.header} ---</div>);
 
-            await wait(300);
+            await wait(250);
             addLine(<div className="text-green-500 font-bold">{`> ${t.terminal.upload}... OK`}</div>);
 
-            await wait(400);
+            await wait(300);
             addLine(
                 <div className="flex justify-between w-full max-w-xs text-sm">
                     <span className="text-slate-400">{t.terminal.analysis}:</span>

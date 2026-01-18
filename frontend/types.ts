@@ -91,7 +91,12 @@ export interface PlayerProfile {
   badges: string[]; // IDs of unlocked badges
   xp: number; // NEW: Total Experience Points
   level: number; // NEW: Current Level
+  coins?: number; // Quick access to coin balance (synced from economyService)
 }
+
+// --- Game Mode Types ---
+
+export type GameMode = 'DAILY' | 'PRACTICE' | 'CAMPAIGN' | 'ENDLESS' | 'SPEEDRUN' | 'WEEKLY';
 
 // --- Campaign Types ---
 

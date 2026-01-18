@@ -2,6 +2,7 @@
 import { PlayerProfile, Badge, DailyMission, Grid, NodeStatus } from '../types';
 import { STORAGE_KEY_PROFILE } from '../constants';
 import { SeededRNG } from '../utils/rng';
+import { syncProgressToCloud, CloudProgress } from './cloudSyncService';
 
 export const BADGES: Record<string, Badge> = {
     'NOVICE': { id: 'NOVICE', icon: '🌱' },
@@ -182,6 +183,17 @@ export const getProfile = (): PlayerProfile => {
 
 export const saveProfile = (profile: PlayerProfile) => {
     localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(profile));
+    
+    // Sync to cloud (fire and forget)
+    const cloudData: CloudProgress = {
+        xp: profile.xp,
+        level: profile.level,
+        total_wins: profile.totalWins,
+        fastest_win_ms: profile.fastestWinMs === Infinity ? null : profile.fastestWinMs,
+        consecutive_no_hint_wins: profile.consecutiveNoHintWins,
+        badges: profile.badges,
+    };
+    syncProgressToCloud(cloudData).catch(err => console.warn('[Progression] Cloud sync failed:', err));
 };
 
 // --- Mission Logic ---

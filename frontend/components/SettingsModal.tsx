@@ -3,9 +3,10 @@ import { Modal } from './Modal';
 import { useTheme, ThemeId } from '../contexts/ThemeContext';
 import { THEMES } from '../constants/themes';
 import { TRANSLATIONS, Language } from '../constants/translations';
-import { GameSettings, loadSettings, saveSettings, resetSettings } from '../services/settingsService';
+import { GameSettings, loadSettings, saveSettings, resetSettings, AnimationLevel, HapticIntensity } from '../services/settingsService';
 import { setMasterVolume, setSFXVolume, setMusicVolume } from '../services/audio';
 import { playSound } from '../services/audio';
+import { triggerHaptic, isHapticSupported } from '../services/hapticService';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -225,11 +226,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
                             </button>
                         </div>
 
+                        {/* Animation Level - NEW */}
+                        <div className="space-y-2 border-t border-slate-700 pt-4">
+                            <div className="text-sm text-slate-300">
+                                {lang === 'tr' ? 'Animasyon Seviyesi' : 'Animation Level'}
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {(['full', 'reduced', 'minimal'] as AnimationLevel[]).map(level => (
+                                    <button
+                                        key={level}
+                                        onClick={() => { updateAndSave({ animationLevel: level }); playSound('click'); }}
+                                        className={`py-2 px-3 rounded-lg text-xs font-mono transition-all
+                                            ${settings.animationLevel === level
+                                                ? 'bg-cyan-600 text-white'
+                                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
+                                    >
+                                        {level === 'full' ? (lang === 'tr' ? '✨ Tam' : '✨ Full')
+                                            : level === 'reduced' ? (lang === 'tr' ? '⚡ Düşük' : '⚡ Reduced')
+                                                : (lang === 'tr' ? '🔋 Minimal' : '🔋 Minimal')}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                                {lang === 'tr'
+                                    ? 'Düşük performanslı cihazlarda "Minimal" seçin'
+                                    : 'Choose "Minimal" for low-performance devices'}
+                            </div>
+                        </div>
+
                         <ToggleControl
-                            label={lang === 'tr' ? 'Animasyonlar' : 'Animations'}
-                            description={lang === 'tr' ? 'Parçacık ve geçiş efektleri' : 'Particles and transitions'}
-                            checked={settings.animationsEnabled}
-                            onChange={(v) => updateAndSave({ animationsEnabled: v })}
+                            label={lang === 'tr' ? 'Konfeti Efektleri' : 'Confetti Effects'}
+                            description={lang === 'tr' ? 'Kazanma kutlaması' : 'Win celebration'}
+                            checked={settings.showConfetti ?? true}
+                            onChange={(v) => updateAndSave({ showConfetti: v })}
+                        />
+
+                        <ToggleControl
+                            label={lang === 'tr' ? 'Parçacık Efektleri' : 'Particle Effects'}
+                            description={lang === 'tr' ? 'Kıvılcım ve akış efektleri' : 'Sparks and flow effects'}
+                            checked={settings.showParticles ?? true}
+                            onChange={(v) => updateAndSave({ showParticles: v })}
                         />
 
                         <ToggleControl
@@ -244,6 +280,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
                             checked={settings.highContrast}
                             onChange={(v) => updateAndSave({ highContrast: v })}
                         />
+
+                        {/* Haptic Feedback - NEW */}
+                        {isHapticSupported() && (
+                            <div className="border-t border-slate-700 pt-4 space-y-3">
+                                <div className="text-sm text-slate-300 flex items-center gap-2">
+                                    📳 {lang === 'tr' ? 'Dokunsal Geri Bildirim' : 'Haptic Feedback'}
+                                </div>
+
+                                <ToggleControl
+                                    label={lang === 'tr' ? 'Titreşim Aktif' : 'Vibration Enabled'}
+                                    checked={settings.hapticEnabled ?? true}
+                                    onChange={(v) => { updateAndSave({ hapticEnabled: v }); if (v) triggerHaptic('medium'); }}
+                                />
+
+                                {settings.hapticEnabled && (
+                                    <>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {(['light', 'medium', 'heavy'] as HapticIntensity[]).map(intensity => (
+                                                <button
+                                                    key={intensity}
+                                                    onClick={() => {
+                                                        updateAndSave({ hapticIntensity: intensity });
+                                                        triggerHaptic(intensity);
+                                                    }}
+                                                    className={`py-2 px-3 rounded-lg text-xs font-mono transition-all
+                                                        ${settings.hapticIntensity === intensity
+                                                            ? 'bg-fuchsia-600 text-white'
+                                                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
+                                                >
+                                                    {intensity === 'light' ? (lang === 'tr' ? 'Hafif' : 'Light')
+                                                        : intensity === 'medium' ? (lang === 'tr' ? 'Orta' : 'Medium')
+                                                            : (lang === 'tr' ? 'Güçlü' : 'Heavy')}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            onClick={() => triggerHaptic('success')}
+                                            className="w-full py-2 text-xs font-mono bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+                                        >
+                                            📳 {lang === 'tr' ? 'Titreşimi Test Et' : 'Test Haptic'}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 

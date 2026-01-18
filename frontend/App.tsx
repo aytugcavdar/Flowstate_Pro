@@ -1,11 +1,15 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getDailyTheme, getWinningCommentary, getGameHint } from './services/geminiService';
 import { playSound, startAmbience, setMusicIntensity, stopAmbience } from './services/audio';
 import { getProfile, checkBadgesOnWin, generateDailyMissions } from './services/progression';
 import { getCampaignProgress, completeLevel, calculateStarsForRun, getNextLevelId, CAMPAIGN_CHAPTERS } from './services/campaign';
 import { submitScore, hasPlayedToday } from './services/leaderboardService';
 import { loadSettings } from './services/settingsService';
+import { rewardGameWin } from './services/economyService';
+import { getInventory, usePowerup, PowerupInventory, PowerupType, consumeCoinBoost, isCoinBoostActive } from './services/powerupService';
+import { logGameSession } from './services/cloudSyncService';
+import { logUserVisit, logGameStart, logGameWin, logModeChange, logShopOpen } from './services/analyticsService';
+import { haptic } from './services/hapticService';
 import { Tile } from './components/Tile';
 import { Modal } from './components/Modal';
 import { CyberpunkOverlay } from './components/CyberpunkOverlay';
@@ -15,19 +19,23 @@ import { TerminalWinScreen } from './components/TerminalWinScreen';
 import { ProfileModal } from './components/ProfileModal';
 import { MissionBoard } from './components/MissionBoard';
 import { CampaignMenu } from './components/CampaignMenu';
+import { EndlessMode } from './components/EndlessMode';
+import { SpeedRunMode } from './components/SpeedRunMode';
 import { ThemeSelector } from './components/ThemeSelector';
 import { SettingsModal } from './components/SettingsModal';
 import { AchievementsModal } from './components/AchievementsModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { DailyRewardModal } from './components/DailyRewardModal';
+import { ShopModal } from './components/ShopModal';
+import { PowerupBar } from './components/PowerupBar';
 import { ConfettiCanvas } from './components/Confetti';
 import { canClaimReward } from './services/rewardService';
 import { TRANSLATIONS, Language } from './constants/translations';
-import { DailyStats, DailyTheme, TileType, WinAnalysis, PlayerProfile, DailyMission, CampaignLevel, CampaignProgress } from './types';
+import { DailyStats, DailyTheme, TileType, WinAnalysis, PlayerProfile, DailyMission, CampaignLevel, CampaignProgress, GameMode, GridPos } from './types';
 import { STORAGE_KEY_STATS, GRID_SIZE } from './constants';
 import { useGameState } from './hooks/useGameState';
 
-type GameMode = 'DAILY' | 'PRACTICE' | 'CAMPAIGN';
+
 
 const App: React.FC = () => {
     // --- UI State ---
@@ -52,7 +60,11 @@ const App: React.FC = () => {
     }, [mode, practiceSeed, campaignLevel]);
 
     // --- Game State Hook ---
-    const { grid, moves, isWon, charges, loading, onTileClick, resetGame } = useGameState(currentKey);
+    const { grid, moves, isWon, charges, loading, onTileClick, resetGame, canUndo, undoLastMove, getHintableTile, applyHint } = useGameState(currentKey);
+
+    // --- Power-up State ---
+    const [powerupInventory, setPowerupInventory] = useState<PowerupInventory>(getInventory());
+    const [hintHighlight, setHintHighlight] = useState<{ position: GridPos; rotation: number } | null>(null);
 
     // --- Auxiliary State ---
     const [theme, setTheme] = useState<DailyTheme | null>(null);
@@ -68,6 +80,7 @@ const App: React.FC = () => {
     const [showAchievements, setShowAchievements] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showRewards, setShowRewards] = useState(canClaimReward());
+    const [showShop, setShowShop] = useState(false);
     const [stats, setStats] = useState<DailyStats>({ streak: 0, lastPlayed: '', history: {}, completedMissions: [] });
     const [missions, setMissions] = useState<DailyMission[]>([]);
 
@@ -85,7 +98,7 @@ const App: React.FC = () => {
 
     // --- Effects ---
 
-    // Load Stats, Theme, Missions
+    // Load Stats, Theme, Missions + Log User Visit
     useEffect(() => {
         const savedStats = localStorage.getItem(STORAGE_KEY_STATS);
         if (savedStats) setStats(JSON.parse(savedStats));
@@ -100,6 +113,9 @@ const App: React.FC = () => {
         } else {
             setMissions([]);
         }
+
+        // Log user visit on first load
+        logUserVisit().catch(err => console.warn('[App] Visit log failed:', err));
     }, [currentKey, mode, lang]);
 
     // Timer Logic
@@ -124,27 +140,43 @@ const App: React.FC = () => {
     // Track if game was just loaded from cache as already-won (to prevent auto-trigger)
     const wasLoadedAsWonRef = useRef(false);
     const lastProcessedKeyRef = useRef<string | null>(null);
+    const prevIsWonRef = useRef(false);
+    const loadingCompleteRef = useRef(false);
 
-    // When loading completes with isWon=true and we haven't processed this key yet, it's from cache
+    // Track when loading completes - if isWon is already true at this point, it's from cache
     useEffect(() => {
-        if (!loading && isWon && !showWin && !showHackEffect) {
-            // If this key hasn't been processed by a real win yet, mark as loaded from cache
-            if (lastProcessedKeyRef.current !== currentKey) {
+        if (!loading && !loadingCompleteRef.current) {
+            // Loading just completed
+            loadingCompleteRef.current = true;
+            if (isWon) {
+                // Game was loaded as already won (from cache)
                 wasLoadedAsWonRef.current = true;
                 console.log('[App] Loaded cached won game, skipping celebration');
             }
         }
-    }, [loading, isWon, currentKey, showWin, showHackEffect]);
+    }, [loading, isWon]);
+
+    // Reset refs when game key changes (new game)
+    useEffect(() => {
+        loadingCompleteRef.current = false;
+        wasLoadedAsWonRef.current = false;
+        prevIsWonRef.current = false;
+    }, [currentKey]);
 
     // Win Handler
     useEffect(() => {
         // If game was loaded as won from cache, don't trigger celebration
         if (wasLoadedAsWonRef.current) {
             // User already completed this game before, skip everything
+            prevIsWonRef.current = isWon;
             return;
         }
 
-        if (isWon && !showHackEffect && !showWin) {
+        // Only trigger win celebration if isWon just changed from false to true
+        const justWon = isWon && !prevIsWonRef.current;
+        prevIsWonRef.current = isWon;
+
+        if (justWon && !showHackEffect && !showWin) {
             // Calculate Time
             const duration = Date.now() - startTimeRef.current;
             setGameTimeMs(duration);
@@ -198,6 +230,25 @@ const App: React.FC = () => {
                 setUnlockedBadges(newBadges);
                 setLastXpGained(finalXp);
                 setCompletedMissionIds([...(stats.completedMissions || []), ...newCompletedMissions]);
+
+                // Award Coins
+                rewardGameWin(mode, {
+                    stars: mode === 'CAMPAIGN' && campaignLevel ? calculateStarsForRun(moves, campaignLevel.parMoves) : undefined,
+                    streak: stats.streak + 1,
+                    missionsCompleted: newCompletedMissions.length,
+                    timeMs: duration,
+                });
+
+                // Log game session for analytics
+                logGameSession({
+                    mode,
+                    date_key: currentKey,
+                    moves,
+                    time_ms: duration,
+                    won: true,
+                    used_hint: usedHint,
+                    powerups_used: {}, // Could track which powerups were used
+                }).catch(err => console.warn('[App] Game session log failed:', err));
 
                 // Save Stats Update (Streaks + Missions)
                 if (mode === 'DAILY') {
@@ -267,14 +318,71 @@ const App: React.FC = () => {
         setTimeout(() => setHint(null), 8000);
     };
 
+    // Power-up handlers
+    const handleUsePowerup = useCallback((type: PowerupType) => {
+        if (isWon) return;
+
+        switch (type) {
+            case 'hint': {
+                // Use hint from inventory
+                if (usePowerup('hint', mode)) {
+                    setPowerupInventory(getInventory());
+                    setUsedHint(true);
+                    haptic.powerupUse();
+
+                    // Get a hintable tile and highlight it
+                    const hintData = getHintableTile();
+                    if (hintData) {
+                        setHintHighlight({ position: hintData.position, rotation: hintData.correctRotation });
+                        // Auto-apply after a brief highlight
+                        setTimeout(() => {
+                            applyHint(hintData.position.r, hintData.position.c, hintData.correctRotation);
+                            setHintHighlight(null);
+                        }, 500);
+                    }
+                }
+                break;
+            }
+            case 'undo': {
+                if (canUndo && usePowerup('undo', mode)) {
+                    setPowerupInventory(getInventory());
+                    undoLastMove();
+                }
+                break;
+            }
+            case 'freeze': {
+                // Freeze is handled in SpeedRunMode directly
+                // This is just for display purposes
+                playSound('click');
+                break;
+            }
+            case 'coinBoost': {
+                // Coin boost is passive, nothing to do
+                break;
+            }
+        }
+    }, [isWon, mode, canUndo, getHintableTile, applyHint, undoLastMove]);
+
+    // Refresh inventory when shop closes or game starts
+    useEffect(() => {
+        setPowerupInventory(getInventory());
+    }, [showShop, currentKey]);
+
     const handleStartGame = () => {
         setShowIntro(false);
         startAmbience();
         playSound('power');
         startTimeRef.current = Date.now();
+        setPowerupInventory(getInventory()); // Refresh on game start
+
+        // Log game start for analytics
+        logGameStart(mode, campaignLevel?.id).catch(err => console.warn('[App] Game start log failed:', err));
     };
 
     const handleModeSwitch = (newMode: GameMode) => {
+        // Log mode change for analytics
+        logModeChange(mode, newMode).catch(err => console.warn('[App] Mode change log failed:', err));
+
         setMode(newMode);
 
         if (newMode === 'PRACTICE') {
@@ -285,6 +393,12 @@ const App: React.FC = () => {
         } else if (newMode === 'CAMPAIGN') {
             setCampaignLevel(null); // Reset level selection to show menu
             setShowIntro(false); // Campaign doesn't have the standard intro modal
+        } else if (newMode === 'ENDLESS') {
+            setShowIntro(false); // Endless has its own UI
+        } else if (newMode === 'SPEEDRUN') {
+            setShowIntro(false); // SpeedRun has its own UI
+        } else if (newMode === 'WEEKLY') {
+            setShowIntro(true); // Weekly uses similar intro
         }
 
         setShowWin(false);
@@ -361,7 +475,27 @@ const App: React.FC = () => {
             );
         }
 
-        // 3. Game Board
+        // 3. Endless Mode (Full Screen)
+        if (mode === 'ENDLESS') {
+            return (
+                <EndlessMode
+                    lang={lang}
+                    onExit={() => handleModeSwitch('DAILY')}
+                />
+            );
+        }
+
+        // 4. Speed Run Mode (Full Screen)
+        if (mode === 'SPEEDRUN') {
+            return (
+                <SpeedRunMode
+                    lang={lang}
+                    onExit={() => handleModeSwitch('DAILY')}
+                />
+            );
+        }
+
+        // 5. Game Board
         return (
             <main className="flex-1 w-full max-w-lg p-2 flex flex-col items-center justify-center gap-4">
 
@@ -375,12 +509,31 @@ const App: React.FC = () => {
                     className={`grid gap-0.5 p-1 bg-slate-900 rounded-xl shadow-2xl border transition-all duration-1000 ${isWon ? 'border-white shadow-[0_0_30px_rgba(255,255,255,0.3)]' : 'border-slate-800'}`}
                     style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`, width: '100%', aspectRatio: '1/1' }}
                 >
-                    {grid.map((row, r) => row.map((tile, c) => (
-                        <div key={`${r}-${c}`} className="w-full h-full">
-                            <Tile tile={tile} onClick={() => onTileClick(r, c)} isWon={isWon} charges={charges} row={r} />
-                        </div>
-                    )))}
+                    {grid.map((row, r) => row.map((tile, c) => {
+                        const isHinted = hintHighlight?.position.r === r && hintHighlight?.position.c === c;
+                        return (
+                            <div
+                                key={`${r}-${c}`}
+                                className={`w-full h-full transition-all ${isHinted ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900 animate-pulse' : ''}`}
+                            >
+                                <Tile tile={tile} onClick={() => onTileClick(r, c)} isWon={isWon} charges={charges} row={r} />
+                            </div>
+                        );
+                    }))}
                 </div>
+
+                {/* Power-up Bar */}
+                {!isWon && (powerupInventory.hints > 0 || powerupInventory.undos > 0) && (
+                    <div className="w-full flex justify-center">
+                        <PowerupBar
+                            inventory={powerupInventory}
+                            lang={lang}
+                            onUsePowerup={handleUsePowerup}
+                            disabled={isWon}
+                            showFreeze={false}
+                        />
+                    </div>
+                )}
 
                 <GameControls
                     isWon={isWon}
@@ -414,6 +567,7 @@ const App: React.FC = () => {
                 onOpenLeaderboard={() => setShowLeaderboard(true)}
                 onOpenAchievements={() => setShowAchievements(true)}
                 onOpenRewards={() => setShowRewards(true)}
+                onOpenShop={() => setShowShop(true)}
                 profile={profile}
                 campaignLevel={campaignLevel}
                 currentStars={currentRunStars}
@@ -480,6 +634,12 @@ const App: React.FC = () => {
             <DailyRewardModal
                 isOpen={showRewards}
                 onClose={() => setShowRewards(false)}
+                lang={lang}
+            />
+
+            <ShopModal
+                isOpen={showShop}
+                onClose={() => setShowShop(false)}
                 lang={lang}
             />
 

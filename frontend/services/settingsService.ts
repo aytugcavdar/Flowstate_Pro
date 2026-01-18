@@ -2,6 +2,9 @@
  * Settings Service - Manages game settings and preferences
  */
 
+export type AnimationLevel = 'full' | 'reduced' | 'minimal';
+export type HapticIntensity = 'light' | 'medium' | 'heavy';
+
 export interface GameSettings {
   // Audio Settings
   masterVolume: number; // 0-100
@@ -13,6 +16,13 @@ export interface GameSettings {
   animationsEnabled: boolean;
   reducedMotion: boolean;
   showScanlines: boolean;
+  animationLevel: AnimationLevel; // NEW: Granular animation control
+  showConfetti: boolean; // NEW: Toggle confetti effects
+  showParticles: boolean; // NEW: Toggle particle effects
+  
+  // Haptic Settings (NEW)
+  hapticEnabled: boolean;
+  hapticIntensity: HapticIntensity;
   
   // Game Settings
   confirmReset: boolean;
@@ -35,6 +45,11 @@ const DEFAULT_SETTINGS: GameSettings = {
   animationsEnabled: true,
   reducedMotion: false,
   showScanlines: true,
+  animationLevel: 'full',
+  showConfetti: true,
+  showParticles: true,
+  hapticEnabled: true,
+  hapticIntensity: 'medium',
   confirmReset: true,
   showTimer: true,
   highContrast: false,

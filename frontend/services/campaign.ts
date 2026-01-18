@@ -1,5 +1,6 @@
 
 import { CampaignChapter, CampaignProgress } from "../types";
+import { syncCampaignLevelToCloud, fetchCampaignProgressFromCloud } from './cloudSyncService';
 
 const STORAGE_KEY_CAMPAIGN = 'flowstate_campaign_v1';
 
@@ -121,6 +122,9 @@ export const completeLevel = (levelId: string, stars: number): { newProgress: Ca
     const currentStars = progress.levelStars[levelId] || 0;
     if (stars > currentStars) {
         progress.levelStars[levelId] = stars;
+        
+        // Sync individual level to cloud
+        syncCampaignLevelToCloud(levelId, stars).catch(err => console.warn('[Campaign] Cloud sync failed:', err));
     }
 
     const totalStars = calculateTotalStars(progress);
