@@ -13,6 +13,7 @@ import { initNotifications } from './services/notificationService';
 import { initExperiments } from './services/abTestService';
 import { checkReferralBonuses, checkUrlForReferral } from './services/referralService';
 import { haptic } from './services/hapticService';
+import { startBackgroundPreload } from './services/preloadService';
 import { Tile } from './components/Tile';
 import { Modal } from './components/Modal';
 import { CyberpunkOverlay } from './components/CyberpunkOverlay';
@@ -34,14 +35,18 @@ import { PowerupBar } from './components/PowerupBar';
 import { ConfettiCanvas } from './components/Confetti';
 import { AdminDashboard } from './components/AdminDashboard';
 import { UsernameModal } from './components/UsernameModal';
+import { PuzzleProgressBar } from './components/PuzzleProgressBar';
+import { SkeletonGrid } from './components/SkeletonLoading';
 import { canClaimReward } from './services/rewardService';
 import { getStoredUsername } from './services/usernameService';
+import { useResponsiveGrid, getGridStyles } from './hooks/useResponsiveGrid';
 import { TRANSLATIONS, Language } from './constants/translations';
 import { DailyStats, DailyTheme, TileType, WinAnalysis, PlayerProfile, DailyMission, CampaignLevel, CampaignProgress, GameMode, GridPos } from './types';
 import { STORAGE_KEY_STATS, GRID_SIZE } from './constants';
 import { useGameState } from './hooks/useGameState';
 
-
+// Start preloading assets early
+startBackgroundPreload();
 
 const App: React.FC = () => {
     // --- UI State ---
@@ -561,23 +566,41 @@ const App: React.FC = () => {
                     {hint && <div className="text-xs font-mono text-yellow-300 bg-yellow-900/30 px-3 py-1 rounded border border-yellow-600/50 animate-in fade-in slide-in-from-top-2">{hint}</div>}
                 </div>
 
-                {/* Grid */}
-                <div
-                    className={`grid gap-0.5 p-1 bg-slate-900 rounded-xl shadow-2xl border transition-all duration-1000 ${isWon ? 'border-white shadow-[0_0_30px_rgba(255,255,255,0.3)]' : 'border-slate-800'}`}
-                    style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`, width: '100%', aspectRatio: '1/1' }}
-                >
-                    {grid.map((row, r) => row.map((tile, c) => {
-                        const isHinted = hintHighlight?.position.r === r && hintHighlight?.position.c === c;
-                        return (
-                            <div
-                                key={`${r}-${c}`}
-                                className={`w-full h-full transition-all ${isHinted ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900 animate-pulse' : ''}`}
-                            >
-                                <Tile tile={tile} onClick={() => onTileClick(r, c)} isWon={isWon} charges={charges} row={r} />
-                            </div>
-                        );
-                    }))}
-                </div>
+                {/* Progress Bar - disabled for now, can re-enable later */}
+                {/* {!isWon && !loading && (
+                    <PuzzleProgressBar grid={grid} isWon={isWon} />
+                )} */}
+
+                {/* Grid with Skeleton Loading */}
+                {loading ? (
+                    <SkeletonGrid size={GRID_SIZE} />
+                ) : (
+                    <div
+                        className={`grid gap-0.5 p-1.5 sm:p-2 bg-slate-900/95 rounded-xl sm:rounded-2xl shadow-2xl transition-all duration-700 no-select touch-none ${isWon ? 'animate-win border-2 border-white' : 'grid-neon'}`}
+                        style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`, width: '100%', maxWidth: '500px', aspectRatio: '1/1' }}
+                    >
+                        {grid.map((row, r) => row.map((tile, c) => {
+                            const isHinted = hintHighlight?.position.r === r && hintHighlight?.position.c === c;
+                            return (
+                                <div
+                                    key={`${r}-${c}`}
+                                    className={`w-full h-full transition-all ${isHinted ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900 animate-pulse' : ''}`}
+                                >
+                                    <Tile
+                                        tile={tile}
+                                        onClick={() => {
+                                            haptic.tileRotate(); // Enhanced haptic on every tile click
+                                            onTileClick(r, c);
+                                        }}
+                                        isWon={isWon}
+                                        charges={charges}
+                                        row={r}
+                                    />
+                                </div>
+                            );
+                        }))}
+                    </div>
+                )}
 
                 {/* Power-up Bar */}
                 {!isWon && (powerupInventory.hints > 0 || powerupInventory.undos > 0) && (
@@ -595,7 +618,7 @@ const App: React.FC = () => {
                 <GameControls
                     isWon={isWon}
                     loadingHint={loadingHint}
-                    mode={mode === 'DAILY' ? 'DAILY' : 'PRACTICE'} // Campaign uses Practice controls (no special buttons needed yet)
+                    mode={mode === 'DAILY' ? 'DAILY' : 'PRACTICE'}
                     charges={charges}
                     lang={lang}
                     onRequestHint={requestHint}

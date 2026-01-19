@@ -168,7 +168,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, isWon, charges, row }
     return (
         <div
             onClick={handleClick}
-            className={`relative w-full h-full aspect-square rounded-sm sm:rounded-md transition-all duration-200 cursor-pointer overflow-hidden border ${bgClass}`}
+            className={`relative w-full h-full aspect-square rounded-sm sm:rounded-md transition-all duration-200 cursor-pointer overflow-hidden border no-select touch-none tile-hover ${bgClass}`}
         >
             {showSparks && <SparkBurst />}
 

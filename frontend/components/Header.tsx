@@ -5,7 +5,6 @@ import { PlayerProfile, CampaignLevel, GameMode } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { canClaimReward } from '../services/rewardService';
 import { getCoins } from '../services/economyService';
-import { StreakIndicator } from './StreakIndicator';
 
 interface HeaderProps {
     moves: number;
@@ -22,7 +21,7 @@ interface HeaderProps {
     onOpenShop: () => void;
     profile: PlayerProfile;
     campaignLevel?: CampaignLevel | null;
-    currentStars?: number; // 0-3 for current run
+    currentStars?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,11 +30,9 @@ export const Header: React.FC<HeaderProps> = ({
     profile, campaignLevel, currentStars
 }) => {
     const t = TRANSLATIONS[lang];
-    const { mode: themeMode } = useTheme();
     const hasReward = canClaimReward();
     const [coins, setCoins] = useState(getCoins());
 
-    // Refresh coins on mount and when visible
     useEffect(() => {
         setCoins(getCoins());
         const interval = setInterval(() => setCoins(getCoins()), 2000);
@@ -43,220 +40,150 @@ export const Header: React.FC<HeaderProps> = ({
     }, []);
 
     return (
-        <header
-            className="w-full max-w-lg p-4 pb-2 border-b backdrop-blur-md sticky top-0 z-20"
-            style={{
-                backgroundColor: 'var(--color-bg-secondary)',
-                borderColor: 'var(--color-border)'
-            }}
-        >
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-1.5">
-                    <h1
-                        className="text-xl font-black tracking-tighter bg-clip-text text-transparent"
-                        style={{
-                            backgroundImage: `linear-gradient(to right, var(--color-accent-1), var(--color-accent-2))`
-                        }}
-                    >
-                        {t.title}
-                    </h1>
-
-                    {/* Quick Action Buttons */}
-                    <div className="flex items-center gap-1 ml-2">
-                        {/* Daily Reward (with indicator) */}
-                        <button
-                            onClick={onOpenRewards}
-                            className={`text-sm px-1.5 py-1 rounded transition-all hover:scale-110 relative
-                                ${hasReward ? 'animate-pulse' : ''}`}
-                            style={{
-                                backgroundColor: 'var(--color-bg-tertiary)',
-                                border: `1px solid ${hasReward ? 'var(--color-warning)' : 'var(--color-border)'}`,
-                            }}
-                            title={lang === 'tr' ? 'Günlük Ödül' : 'Daily Reward'}
-                        >
-                            🎁
-                            {hasReward && (
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                            )}
-                        </button>
-
-                        {/* Leaderboard */}
-                        {mode === 'DAILY' && (
-                            <button
-                                onClick={onOpenLeaderboard}
-                                className="text-sm px-1.5 py-1 rounded transition-all hover:scale-110"
-                                style={{
-                                    backgroundColor: 'var(--color-bg-tertiary)',
-                                    border: '1px solid var(--color-border)',
-                                }}
-                                title={lang === 'tr' ? 'Skor Tablosu' : 'Leaderboard'}
-                            >
-                                🏆
-                            </button>
-                        )}
-
-                        {/* Achievements */}
-                        <button
-                            onClick={onOpenAchievements}
-                            className="text-sm px-1.5 py-1 rounded transition-all hover:scale-110"
-                            style={{
-                                backgroundColor: 'var(--color-bg-tertiary)',
-                                border: '1px solid var(--color-border)',
-                            }}
-                            title={lang === 'tr' ? 'Başarımlar' : 'Achievements'}
-                        >
-                            🏅
-                        </button>
-
-                        {/* Settings */}
+        <header className="w-full max-w-lg sticky top-0 z-20 safe-area-inset">
+            {/* Top Bar - Clean & Minimal */}
+            <div
+                className="px-4 py-3 backdrop-blur-lg border-b"
+                style={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    borderColor: 'var(--color-border)'
+                }}
+            >
+                <div className="flex justify-between items-center">
+                    {/* Left: Logo & Settings */}
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-transparent">
+                            FLOWSTATE
+                        </h1>
                         <button
                             onClick={onOpenSettings}
-                            className="text-sm px-1.5 py-1 rounded transition-all hover:scale-110"
-                            style={{
-                                backgroundColor: 'var(--color-bg-tertiary)',
-                                border: '1px solid var(--color-border)',
-                            }}
+                            className="text-slate-400 hover:text-white transition-colors p-1"
                             title={lang === 'tr' ? 'Ayarlar' : 'Settings'}
                         >
-                            ⚙️
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
                         </button>
                     </div>
-                </div>
-                <div className="text-right flex items-center gap-4">
-                    {/* Coin Display - Clickable to open shop */}
-                    <button
-                        onClick={onOpenShop}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all hover:scale-105"
-                        style={{
-                            backgroundColor: 'var(--color-bg-tertiary)',
-                            border: '1px solid var(--color-warning)',
-                        }}
-                        title={lang === 'tr' ? 'Mağaza' : 'Shop'}
-                    >
-                        <span className="text-sm">🪙</span>
-                        <span
-                            className="font-bold font-mono text-sm"
-                            style={{ color: 'var(--color-warning)' }}
-                        >
-                            {coins.toLocaleString()}
-                        </span>
-                    </button>
 
-                    {/* Streak Indicator */}
-                    <StreakIndicator compact onClick={onOpenRewards} />
-                    {/* Level Indicator */}
-                    <button onClick={onOpenProfile} className="flex flex-col items-end group">
-                        <div className="flex items-center gap-2">
-                            <span
-                                className="text-xs font-bold tracking-widest opacity-80 group-hover:opacity-100 transition-opacity"
-                                style={{ color: 'var(--color-warning)' }}
-                            >
-                                LVL {profile.level}
-                            </span>
-                            <span className="text-2xl hover:scale-110 transition-transform">👤</span>
-                        </div>
-                        <div
-                            className="w-12 h-1 rounded-full mt-1 overflow-hidden"
-                            style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
+                    {/* Center: Stats Row */}
+                    <div className="flex items-center gap-4">
+                        {/* Coins */}
+                        <button
+                            onClick={onOpenShop}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 transition-all"
                         >
-                            <div
-                                className="h-full"
-                                style={{
-                                    width: `${(profile.xp % 1000) / 10}%`,
-                                    backgroundColor: 'var(--color-warning)'
-                                }}
-                            ></div>
-                        </div>
-                    </button>
+                            <span className="text-sm">🪙</span>
+                            <span className="text-sm font-bold text-yellow-400 font-mono">{coins}</span>
+                        </button>
 
-                    <div>
-                        <span
-                            className="block text-[10px] uppercase tracking-wider"
-                            style={{ color: 'var(--color-text-muted)' }}
+                        {/* Daily Reward */}
+                        <button
+                            onClick={onOpenRewards}
+                            className={`relative p-1.5 rounded-full transition-all ${hasReward ? 'bg-orange-500/20 animate-pulse' : 'hover:bg-slate-800'}`}
+                            title={lang === 'tr' ? 'Günlük Ödül' : 'Daily Reward'}
                         >
-                            {t.moves}
-                        </span>
-                        <div className="flex items-baseline gap-2 justify-end">
-                            <span
-                                className="font-bold font-mono text-xl"
-                                style={{ color: 'var(--color-text-primary)' }}
-                            >
-                                {moves}
-                            </span>
-                            {/* Star Preview for Campaign */}
-                            {mode === 'CAMPAIGN' && currentStars !== undefined && (
-                                <div className="flex text-xs">
-                                    {[1, 2, 3].map(s => (
-                                        <span
-                                            key={s}
-                                            style={{ color: s <= currentStars ? 'var(--color-warning)' : 'var(--color-bg-tertiary)' }}
-                                        >
-                                            ★
-                                        </span>
-                                    ))}
-                                </div>
+                            <span className="text-lg">🎁</span>
+                            {hasReward && (
+                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900" />
                             )}
+                        </button>
+                    </div>
+
+                    {/* Right: Profile & Moves */}
+                    <div className="flex items-center gap-4">
+                        {/* Moves Counter */}
+                        <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-wider text-slate-500">{t.moves}</div>
+                            <div className="text-xl font-bold font-mono text-white">{moves}</div>
                         </div>
+
+                        {/* Profile */}
+                        <button
+                            onClick={onOpenProfile}
+                            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-800/50 transition-colors"
+                        >
+                            <div className="text-right">
+                                <div className="text-xs font-bold text-cyan-400">LVL {profile.level}</div>
+                                <div className="w-10 h-1 bg-slate-700 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-cyan-500"
+                                        style={{ width: `${(profile.xp % 1000) / 10}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm">
+                                {profile.level}
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Mode Switcher or Level Title */}
+            {/* Mode Tabs - Separate, Clean Row */}
             {mode === 'CAMPAIGN' && campaignLevel ? (
                 <div
-                    className="p-2 rounded flex justify-between items-center animate-in slide-in-from-top-2"
-                    style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
+                    className="px-4 py-2 flex justify-between items-center"
+                    style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }}
                 >
                     <button
                         onClick={() => setMode('CAMPAIGN')}
-                        className="text-xs hover:underline"
-                        style={{ color: 'var(--color-accent-1)' }}
+                        className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
                     >
-                        ← {t.buttons.back}
+                        <span>←</span> {t.buttons.back}
                     </button>
-                    <span
-                        className="text-xs font-bold tracking-widest"
-                        style={{ color: 'var(--color-text-primary)' }}
-                    >
+                    <span className="text-sm font-bold tracking-widest text-white">
                         {campaignLevel.title.toUpperCase()}
                     </span>
-                    <div
-                        className="text-[10px]"
-                        style={{ color: 'var(--color-text-muted)' }}
-                    >
-                        PAR: {campaignLevel.parMoves}
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">PAR: {campaignLevel.parMoves}</span>
+                        {currentStars !== undefined && (
+                            <div className="flex gap-0.5">
+                                {[1, 2, 3].map(s => (
+                                    <span key={s} className={`text-sm ${s <= currentStars ? 'text-yellow-400' : 'text-slate-700'}`}>★</span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (
                 <div
-                    className="flex p-1 rounded-lg backdrop-blur-sm mb-2"
-                    style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
+                    className="px-3 py-2 flex gap-1"
+                    style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)' }}
                 >
                     {(['DAILY', 'PRACTICE', 'CAMPAIGN', 'ENDLESS'] as const).map(m => {
                         const isActive = mode === m;
-                        const bgColor = m === 'DAILY'
-                            ? 'var(--color-accent-1)'
-                            : m === 'CAMPAIGN'
-                                ? 'var(--color-warning)'
-                                : m === 'ENDLESS'
-                                    ? 'var(--color-success, #22c55e)'
-                                    : 'var(--color-accent-2)';
-
-                        const label = m === 'DAILY' ? t.modes.daily
-                            : m === 'CAMPAIGN' ? t.modes.campaign
-                                : m === 'ENDLESS' ? '∞'
-                                    : t.modes.practice;
+                        const config = {
+                            DAILY: { label: t.modes.daily, color: 'cyan', icon: '⚡' },
+                            PRACTICE: { label: t.modes.practice, color: 'fuchsia', icon: '🎯' },
+                            CAMPAIGN: { label: t.modes.campaign, color: 'yellow', icon: '🏆' },
+                            ENDLESS: { label: '∞', color: 'green', icon: '' }
+                        };
+                        const { label, color } = config[m];
 
                         return (
                             <button
                                 key={m}
                                 onClick={() => setMode(m)}
-                                className={`flex-1 py-1.5 text-[10px] sm:text-xs font-bold rounded-md transition-all ${isActive ? 'shadow-lg' : ''}`}
-                                style={{
-                                    backgroundColor: isActive ? bgColor : 'transparent',
-                                    color: isActive ? 'var(--color-bg-primary)' : 'var(--color-text-muted)'
-                                }}
-                                title={m === 'ENDLESS' ? 'Endless Mode' : undefined}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${isActive
+                                        ? `bg-${color}-500/20 text-${color}-400 border border-${color}-500/40`
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                                    }`}
+                                style={isActive ? {
+                                    backgroundColor: color === 'cyan' ? 'rgba(34, 211, 238, 0.15)'
+                                        : color === 'fuchsia' ? 'rgba(232, 121, 249, 0.15)'
+                                            : color === 'yellow' ? 'rgba(234, 179, 8, 0.15)'
+                                                : 'rgba(34, 197, 94, 0.15)',
+                                    color: color === 'cyan' ? '#22d3ee'
+                                        : color === 'fuchsia' ? '#e879f9'
+                                            : color === 'yellow' ? '#eab308'
+                                                : '#22c55e',
+                                    borderColor: color === 'cyan' ? 'rgba(34, 211, 238, 0.4)'
+                                        : color === 'fuchsia' ? 'rgba(232, 121, 249, 0.4)'
+                                            : color === 'yellow' ? 'rgba(234, 179, 8, 0.4)'
+                                                : 'rgba(34, 197, 94, 0.4)'
+                                } : {}}
                             >
                                 {label}
                             </button>
@@ -264,6 +191,11 @@ export const Header: React.FC<HeaderProps> = ({
                     })}
                 </div>
             )}
+
+            {/* Quick Actions - Minimal, Floating Style */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 hidden">
+                {/* Reserved for future floating actions */}
+            </div>
         </header>
     );
 };
