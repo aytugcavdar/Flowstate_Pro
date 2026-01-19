@@ -78,6 +78,15 @@ export const Header: React.FC<HeaderProps> = ({
                             <span className="text-sm font-bold text-yellow-400 font-mono">{coins}</span>
                         </button>
 
+                        {/* Leaderboard */}
+                        <button
+                            onClick={onOpenLeaderboard}
+                            className="p-1.5 rounded-full hover:bg-slate-800 transition-all"
+                            title={lang === 'tr' ? 'Skor Tablosu' : 'Leaderboard'}
+                        >
+                            <span className="text-lg">🏆</span>
+                        </button>
+
                         {/* Daily Reward */}
                         <button
                             onClick={onOpenRewards}
@@ -167,8 +176,8 @@ export const Header: React.FC<HeaderProps> = ({
                                 key={m}
                                 onClick={() => setMode(m)}
                                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${isActive
-                                        ? `bg-${color}-500/20 text-${color}-400 border border-${color}-500/40`
-                                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                                    ? `bg-${color}-500/20 text-${color}-400 border border-${color}-500/40`
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
                                     }`}
                                 style={isActive ? {
                                     backgroundColor: color === 'cyan' ? 'rgba(34, 211, 238, 0.15)'
