@@ -205,13 +205,23 @@ export async function submitScore(
   dateKey: string, 
   moves: number, 
   timeMs: number, 
-  playerName: string = 'YOU'
+  playerName?: string
 ): Promise<{ rank: number; entries: LeaderboardEntry[]; improved: boolean }> {
     
-  // Auto-generate unique username if default or empty
+  // Priority: 1) passed playerName, 2) stored username from UsernameModal, 3) generate new
   let finalPlayerName = playerName;
-  if (playerName === 'YOU' || !playerName) {
-    finalPlayerName = await getOrCreateUsername();
+  
+  // If no name passed or it's a default placeholder, use stored username
+  if (!finalPlayerName || finalPlayerName === 'YOU' || finalPlayerName === 'NETRUNNER') {
+    const storedName = getStoredUsername();
+    if (storedName) {
+      finalPlayerName = storedName;
+      console.log('[Leaderboard] Using stored username:', storedName);
+    } else {
+      // Generate new username as last resort
+      finalPlayerName = await getOrCreateUsername();
+      console.log('[Leaderboard] Generated new username:', finalPlayerName);
+    }
   }
 
   // SUPABASE LOGIC
