@@ -7,6 +7,7 @@
 
 import { SeededRNG } from '../utils/rng';
 import { supabase, isSupabaseConfigured, DBScore } from './supabase';
+import { getOrCreateUsername, getStoredUsername } from './usernameService';
 
 export interface LeaderboardEntry {
   rank: number;
@@ -207,6 +208,12 @@ export async function submitScore(
   playerName: string = 'YOU'
 ): Promise<{ rank: number; entries: LeaderboardEntry[]; improved: boolean }> {
     
+  // Auto-generate unique username if default or empty
+  let finalPlayerName = playerName;
+  if (playerName === 'YOU' || !playerName) {
+    finalPlayerName = await getOrCreateUsername();
+  }
+
   // SUPABASE LOGIC
   if (isSupabaseConfigured() && supabase) {
     try {
@@ -234,7 +241,7 @@ export async function submitScore(
                     // Update
                     await supabase
                         .from('scores')
-                        .update({ moves, time_ms: timeMs, username: playerName })
+                        .update({ moves, time_ms: timeMs, username: finalPlayerName })
                         .eq('id', existing.id);
                     improved = true;
                     shouldInsert = false;
@@ -247,12 +254,12 @@ export async function submitScore(
                 // Check if profile exists
                 const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).single();
                 if (!profile) {
-                    await supabase.from('profiles').insert({ id: user.id, username: playerName });
+                    await supabase.from('profiles').insert({ id: user.id, username: finalPlayerName });
                 }
 
                 await supabase.from('scores').insert({
                     user_id: user.id,
-                    username: playerName,
+                    username: finalPlayerName,
                     date_key: dateKey,
                     moves,
                     time_ms: timeMs
@@ -261,8 +268,8 @@ export async function submitScore(
             }
 
             // Fetch new leaderboard
-            const newEntries = await getLeaderboard(dateKey, playerName);
-            const playerRank = newEntries.findIndex(e => e.name === playerName && e.isPlayer) + 1; // Loose check
+            const newEntries = await getLeaderboard(dateKey, finalPlayerName);
+            const playerRank = newEntries.findIndex(e => e.name === finalPlayerName) + 1;
             
             return {
                 rank: playerRank || 0,

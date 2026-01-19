@@ -2,7 +2,10 @@
  * Push Notification Service
  * 
  * Handles browser push notifications for daily reminders
+ * Now with database tracking for analytics
  */
+
+import { supabase, isSupabaseConfigured } from './supabase';
 
 // ============================================
 // TYPES
@@ -131,26 +134,58 @@ export function toggleDailyReminder(enabled: boolean): void {
 // ============================================
 
 /**
+ * Log notification to database for analytics
+ */
+async function logNotificationToDb(
+  type: string,
+  title: string,
+  body?: string
+): Promise<void> {
+  if (!supabase || !isSupabaseConfigured()) return;
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    await supabase.from('notification_logs').insert({
+      user_id: user.id,
+      notification_type: type,
+      title,
+      body
+    });
+  } catch (err) {
+    console.warn('[Notifications] Failed to log notification:', err);
+  }
+}
+
+/**
  * Send a notification immediately
  */
 export async function sendNotification(
   title: string,
-  options?: NotificationOptions
+  options?: NotificationOptions & { notificationType?: string }
 ): Promise<boolean> {
   if (!isNotificationSupported()) return false;
   if (Notification.permission !== 'granted') return false;
+
+  const notificationType = options?.notificationType || 'general';
 
   try {
     // Try to use service worker for persistent notification
     const registration = await navigator.serviceWorker.ready;
     
-    await registration.showNotification(title, {
+    // Use type assertion to allow vibrate pattern
+    const swOptions = {
       icon: '/icons/icon-192.svg',
       badge: '/icons/icon-192.svg',
-      vibrate: [100, 50, 100],
       tag: 'flowstate-notification',
       ...options,
-    });
+    } as NotificationOptions;
+
+    await registration.showNotification(title, swOptions);
+    
+    // Log to database for analytics
+    await logNotificationToDb(notificationType, title, options?.body);
     
     console.log('[Notifications] Sent:', title);
     return true;
@@ -161,6 +196,10 @@ export async function sendNotification(
         icon: '/icons/icon-192.svg',
         ...options,
       });
+      
+      // Log to database for analytics
+      await logNotificationToDb(notificationType, title, options?.body);
+      
       return true;
     } catch (fallbackErr) {
       console.error('[Notifications] Failed to send:', fallbackErr);
@@ -186,7 +225,8 @@ export async function sendDailyReminder(): Promise<boolean> {
     body: 'Bugünün FlowState bulmacası seni bekliyor. Streak\'ini korumayı unutma!',
     tag: 'daily-reminder',
     requireInteraction: false,
-    data: { type: 'daily-reminder', date: today }
+    data: { type: 'daily-reminder', date: today },
+    notificationType: 'daily_reminder'
   });
   
   if (success) {

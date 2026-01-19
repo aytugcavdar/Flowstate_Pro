@@ -33,7 +33,9 @@ import { ShopModal } from './components/ShopModal';
 import { PowerupBar } from './components/PowerupBar';
 import { ConfettiCanvas } from './components/Confetti';
 import { AdminDashboard } from './components/AdminDashboard';
+import { UsernameModal } from './components/UsernameModal';
 import { canClaimReward } from './services/rewardService';
+import { getStoredUsername } from './services/usernameService';
 import { TRANSLATIONS, Language } from './constants/translations';
 import { DailyStats, DailyTheme, TileType, WinAnalysis, PlayerProfile, DailyMission, CampaignLevel, CampaignProgress, GameMode, GridPos } from './types';
 import { STORAGE_KEY_STATS, GRID_SIZE } from './constants';
@@ -86,6 +88,8 @@ const App: React.FC = () => {
     const [showRewards, setShowRewards] = useState(canClaimReward());
     const [showShop, setShowShop] = useState(false);
     const [showAdmin, setShowAdmin] = useState(false);
+    const [showUsernameModal, setShowUsernameModal] = useState(!getStoredUsername());
+    const [playerUsername, setPlayerUsername] = useState(getStoredUsername() || '');
     const [stats, setStats] = useState<DailyStats>({ streak: 0, lastPlayed: '', history: {}, completedMissions: [] });
     const [missions, setMissions] = useState<DailyMission[]>([]);
 
@@ -710,6 +714,16 @@ const App: React.FC = () => {
             <AdminDashboard
                 isOpen={showAdmin}
                 onClose={() => setShowAdmin(false)}
+            />
+
+            {/* Username Modal - Shows on first visit */}
+            <UsernameModal
+                isOpen={showUsernameModal}
+                onComplete={(username) => {
+                    setPlayerUsername(username);
+                    setShowUsernameModal(false);
+                }}
+                isFirstTime={true}
             />
         </div>
     );

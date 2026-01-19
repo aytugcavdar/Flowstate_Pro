@@ -689,3 +689,356 @@ export function exportToCSV(data: any[], filename: string): void {
   
   console.log('[Admin] Exported CSV:', filename);
 }
+
+// ============================================
+// ENHANCED ANALYTICS (New Dashboard Features)
+// ============================================
+
+// Revenue Analytics Types
+export interface RevenueStats {
+  dailyRevenue: {
+    date: string;
+    transactions: number;
+    coin_revenue: number;
+    gem_revenue: number;
+    real_revenue: number;
+  }[];
+  totalRevenue: {
+    coins: number;
+    gems: number;
+    real: number;
+    transactions: number;
+  };
+  topItems: {
+    item_id: string;
+    item_type: string;
+    purchase_count: number;
+    total_quantity: number;
+  }[];
+  payingUsers: number;
+}
+
+// Growth Metrics Types
+export interface GrowthMetrics {
+  dau: number;
+  dauYesterday: number;
+  wau: number;
+  wauLastWeek: number;
+  mau: number;
+  mauLastMonth: number;
+  newUsersToday: number;
+  newUsersThisWeek: number;
+  newUsersThisMonth: number;
+  totalUsers: number;
+  dauTrend: { date: string; dau: number }[];
+}
+
+// Leaderboard Insights Types
+export interface LeaderboardInsights {
+  topPlayers: {
+    username: string;
+    level: number;
+    total_wins: number;
+    xp: number;
+    current_streak: number;
+    max_streak: number;
+    games_this_week: number;
+  }[];
+  topByMode: {
+    mode: string;
+    username: string;
+    best_moves: number;
+    best_time: number;
+  }[];
+  recordBreakers: {
+    username: string;
+    fastest_win_ms: number;
+    max_streak: number;
+  }[];
+  highestLevel: {
+    maxLevel: number;
+    maxXP: number;
+    avgLevel: number;
+  };
+}
+
+// Game Mode Stats Types
+export interface GameModePopularity {
+  modeDistribution: {
+    mode: string;
+    total_games: number;
+    unique_players: number;
+    percentage: number;
+    avg_duration_sec: number;
+    avg_moves: number;
+    win_rate: number;
+  }[];
+  modeTrend: {
+    date: string;
+    mode: string;
+    games: number;
+  }[];
+  modeRetention: {
+    mode: string;
+    returning_players: number;
+    total_players: number;
+  }[];
+}
+
+// Peak Hours Types
+export interface PeakHoursStats {
+  hourlyDistribution: {
+    hour: number;
+    visits: number;
+    unique_users: number;
+  }[];
+  dayOfWeekDistribution: {
+    day_of_week: number;
+    visits: number;
+    unique_users: number;
+  }[];
+  heatmapData: {
+    day: number;
+    hour: number;
+    activity: number;
+  }[];
+  peakHour: { hour: number; visits: number } | null;
+  peakDay: { day: number; visits: number } | null;
+}
+
+// Notification Stats Types
+export interface NotificationStats {
+  totalSent: number;
+  totalOpened: number;
+  openRate: number;
+  byType: {
+    notification_type: string;
+    sent: number;
+    opened: number;
+    open_rate: number;
+  }[];
+  dailyTrend: {
+    date: string;
+    sent: number;
+    opened: number;
+  }[];
+  broadcastStats: {
+    id: number;
+    title: string;
+    sent_at: string;
+    send_count: number;
+    delivered: number;
+    opened: number;
+  }[];
+  avgTimeToOpen: number | null;
+}
+
+// Dashboard Summary Types
+export interface DashboardSummary {
+  realtime: {
+    activeNow: number;
+    gamesNow: number;
+  };
+  today: {
+    visits: number;
+    uniqueUsers: number;
+    games: number;
+    wins: number;
+    newUsers: number;
+    purchases: number;
+  };
+  totals: {
+    users: number;
+    games: number;
+    wins: number;
+    purchases: number;
+  };
+  growth: {
+    dau: number;
+    wau: number;
+    mau: number;
+  };
+}
+
+/**
+ * Get revenue analytics
+ */
+export async function getRevenueStats(daysBack: number = 30): Promise<RevenueStats | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_revenue_stats', { days_back: daysBack });
+    if (error) {
+      console.error('[Admin] Revenue stats error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Revenue error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get growth metrics (DAU, WAU, MAU)
+ */
+export async function getGrowthMetrics(): Promise<GrowthMetrics | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_growth_metrics');
+    if (error) {
+      console.error('[Admin] Growth metrics error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Growth error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get leaderboard insights
+ */
+export async function getLeaderboardInsights(daysBack: number = 7): Promise<LeaderboardInsights | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_leaderboard_insights', { days_back: daysBack });
+    if (error) {
+      console.error('[Admin] Leaderboard insights error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Leaderboard error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get game mode popularity stats
+ */
+export async function getGameModePopularity(daysBack: number = 30): Promise<GameModePopularity | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_game_mode_stats', { days_back: daysBack });
+    if (error) {
+      console.error('[Admin] Game mode popularity error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Game mode error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get peak hours stats for heatmap
+ */
+export async function getPeakHoursStats(daysBack: number = 7): Promise<PeakHoursStats | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_peak_hours_stats', { days_back: daysBack });
+    if (error) {
+      console.error('[Admin] Peak hours error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Peak hours error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get notification statistics
+ */
+export async function getNotificationStats(daysBack: number = 30): Promise<NotificationStats | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_notification_stats', { days_back: daysBack });
+    if (error) {
+      console.error('[Admin] Notification stats error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Notification error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get comprehensive dashboard summary (single call for all key metrics)
+ */
+export async function getDashboardSummary(): Promise<DashboardSummary | null> {
+  if (!isAdmin() || !supabase || !isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_dashboard_summary');
+    if (error) {
+      console.error('[Admin] Dashboard summary error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('[Admin] Dashboard summary error:', err);
+    return null;
+  }
+}
+
+// ============================================
+// NOTIFICATION LOGGING (for tracking)
+// ============================================
+
+/**
+ * Log a sent notification
+ */
+export async function logNotification(
+  notificationType: string,
+  title: string,
+  body?: string,
+  broadcastId?: number
+): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase.from('notification_logs').insert({
+      notification_type: notificationType,
+      title,
+      body,
+      broadcast_id: broadcastId
+    });
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('[Admin] Log notification error:', err);
+    return false;
+  }
+}
+
+/**
+ * Mark notification as opened
+ */
+export async function markNotificationOpened(notificationId: number): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured()) return false;
+
+  try {
+    const { error } = await supabase.from('notification_logs').update({
+      opened: true,
+      opened_at: new Date().toISOString()
+    }).eq('id', notificationId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('[Admin] Mark notification opened error:', err);
+    return false;
+  }
+}
+

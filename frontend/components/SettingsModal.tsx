@@ -4,6 +4,7 @@ import { useTheme, ThemeId } from '../contexts/ThemeContext';
 import { THEMES } from '../constants/themes';
 import { TRANSLATIONS, Language } from '../constants/translations';
 import { GameSettings, loadSettings, saveSettings, resetSettings, AnimationLevel, HapticIntensity } from '../services/settingsService';
+import { getStoredUsername, changeUsername, parseUsername } from '../services/usernameService';
 import { setMasterVolume, setSFXVolume, setMusicVolume } from '../services/audio';
 import { playSound } from '../services/audio';
 import { triggerHaptic, isHapticSupported } from '../services/hapticService';
@@ -20,12 +21,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
     const [settings, setSettings] = useState<GameSettings>(loadSettings);
     const [activeTab, setActiveTab] = useState<'audio' | 'visual' | 'game' | 'data'>('audio');
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [currentUsername, setCurrentUsername] = useState(getStoredUsername() || '');
+    const [usernameInput, setUsernameInput] = useState('');
+    const [usernameError, setUsernameError] = useState('');
+    const [isChangingName, setIsChangingName] = useState(false);
 
     const t = TRANSLATIONS[lang];
 
     useEffect(() => {
         if (isOpen) {
             setSettings(loadSettings());
+            setCurrentUsername(getStoredUsername() || '');
+            setUsernameInput('');
+            setUsernameError('');
+            setIsChangingName(false);
         }
     }, [isOpen]);
 
@@ -354,17 +363,78 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
                         </div>
 
                         {/* Player Name */}
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <div className="text-sm text-slate-300">{lang === 'tr' ? 'Oyuncu Adı' : 'Player Name'}</div>
-                            <input
-                                type="text"
-                                value={settings.playerName}
-                                onChange={(e) => updateAndSave({ playerName: e.target.value.toUpperCase().slice(0, 12) })}
-                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg font-mono text-sm
-                  focus:outline-none focus:border-cyan-500 uppercase"
-                                placeholder="NETRUNNER"
-                                maxLength={12}
-                            />
+
+                            {/* Current Username Display */}
+                            {currentUsername && !isChangingName && (
+                                <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3">
+                                    <div>
+                                        <span className="text-white font-bold">{parseUsername(currentUsername).name}</span>
+                                        <span className="text-cyan-400 font-bold">#{parseUsername(currentUsername).tag}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setIsChangingName(true);
+                                            setUsernameInput(parseUsername(currentUsername).name);
+                                        }}
+                                        className="text-xs text-cyan-400 hover:text-cyan-300"
+                                    >
+                                        ✏️ {lang === 'tr' ? 'Değiştir' : 'Change'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Change Name Form */}
+                            {isChangingName && (
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        value={usernameInput}
+                                        onChange={(e) => {
+                                            setUsernameInput(e.target.value);
+                                            setUsernameError('');
+                                        }}
+                                        className={`w-full px-3 py-2 bg-slate-700 border rounded-lg font-mono text-sm
+                                            focus:outline-none ${usernameError ? 'border-red-500' : 'border-slate-600 focus:border-cyan-500'}`}
+                                        placeholder={lang === 'tr' ? 'Yeni isim...' : 'New name...'}
+                                        maxLength={16}
+                                    />
+                                    {usernameError && (
+                                        <p className="text-xs text-red-400">{usernameError}</p>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                const result = await changeUsername(usernameInput);
+                                                if (result.success && result.username) {
+                                                    setCurrentUsername(result.username);
+                                                    setIsChangingName(false);
+                                                    playSound('power');
+                                                } else {
+                                                    setUsernameError(result.error || 'Hata oluştu');
+                                                }
+                                            }}
+                                            className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-mono"
+                                        >
+                                            ✓ {lang === 'tr' ? 'Kaydet' : 'Save'}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsChangingName(false);
+                                                setUsernameError('');
+                                            }}
+                                            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm font-mono"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="text-xs text-slate-500">
+                                {lang === 'tr' ? '#tag otomatik oluşturulur ve unique olur' : '#tag is auto-generated and unique'}
+                            </p>
                         </div>
 
                         <ToggleControl
