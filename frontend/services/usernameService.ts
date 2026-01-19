@@ -106,11 +106,39 @@ export function getStoredUsername(): string | null {
 }
 
 /**
- * Save username to localStorage
+ * Sync username to Supabase profile
+ */
+export async function syncUsernameToProfile(username: string): Promise<void> {
+  if (!isSupabaseConfigured() || !supabase) return;
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error } = await supabase.from('profiles').upsert({
+        id: user.id,
+        username: username,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+      
+      if (error) {
+        console.warn('[Username] Profile sync warning:', error);
+      } else {
+        console.log('[Username] Synced to profile:', username);
+      }
+    }
+  } catch (err) {
+    console.warn('[Username] Failed to sync to profile:', err);
+  }
+}
+
+/**
+ * Save username to localStorage and sync to Supabase
  */
 export function saveUsername(username: string): void {
   try {
     localStorage.setItem(STORAGE_KEY, username);
+    // Fire and forget sync to Supabase
+    syncUsernameToProfile(username).catch(() => {});
   } catch {
     console.warn('[Username] Failed to save');
   }

@@ -282,6 +282,13 @@ export async function getRecentUsers(limit: number = 50): Promise<UserSummary[]>
       .select('user_id, level, xp')
       .in('user_id', userIds);
 
+    // Get usernames from scores table as fallback (for users who have scores but null profile username)
+    const { data: scores } = await supabase
+      .from('scores')
+      .select('user_id, username')
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false });
+
     // Build lookup maps
     const visitMap = new Map<string, { count: number; lastSeen: string }>();
     (visits || []).forEach(v => {
@@ -306,15 +313,24 @@ export async function getRecentUsers(limit: number = 50): Promise<UserSummary[]>
       progressMap.set(p.user_id, { level: p.level || 1, xp: p.xp || 0 });
     });
 
+    // Build username fallback map from scores (use first/most recent username)
+    const scoreUsernameMap = new Map<string, string>();
+    (scores || []).forEach(s => {
+      if (s.username && !scoreUsernameMap.has(s.user_id)) {
+        scoreUsernameMap.set(s.user_id, s.username);
+      }
+    });
+
     // Combine data
     return profiles.map(u => {
       const visitData = visitMap.get(u.id) || { count: 0, lastSeen: u.created_at };
       const gameData = gameMap.get(u.id) || { total: 0, wins: 0 };
       const progressData = progressMap.get(u.id) || { level: 1, xp: 0 };
+      const fallbackUsername = scoreUsernameMap.get(u.id);
       
       return {
         id: u.id,
-        username: u.username,
+        username: u.username || fallbackUsername || null, // Fallback chain: profile -> scores -> null
         createdAt: u.created_at,
         lastSeen: visitData.lastSeen || u.created_at,
         totalGames: gameData.total,

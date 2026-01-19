@@ -225,6 +225,17 @@ export async function submitScore(
 
         const user = (await supabase.auth.getUser()).data.user;
         if (user) {
+            // Always sync profile username (ensures username is always current in DB)
+            const { error: profileError } = await supabase.from('profiles').upsert({ 
+                id: user.id, 
+                username: finalPlayerName,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+            
+            if (profileError) {
+                console.warn('[Leaderboard] Profile upsert warning:', profileError);
+            }
+
             // Check existing score
             const { data: existing } = await supabase
                 .from('scores')
@@ -238,12 +249,17 @@ export async function submitScore(
 
             if (existing) {
                 if (moves < existing.moves || (moves === existing.moves && timeMs < existing.time_ms)) {
-                    // Update
-                    await supabase
+                    // Update existing score (improved)
+                    const { error: updateError } = await supabase
                         .from('scores')
                         .update({ moves, time_ms: timeMs, username: finalPlayerName })
                         .eq('id', existing.id);
-                    improved = true;
+                    
+                    if (updateError) {
+                        console.error('[Leaderboard] Score update error:', updateError);
+                    } else {
+                        improved = true;
+                    }
                     shouldInsert = false;
                 } else {
                     shouldInsert = false; // Not improved
@@ -251,20 +267,20 @@ export async function submitScore(
             }
 
             if (shouldInsert) {
-                // Check if profile exists
-                const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).single();
-                if (!profile) {
-                    await supabase.from('profiles').insert({ id: user.id, username: finalPlayerName });
-                }
-
-                await supabase.from('scores').insert({
+                const { error: insertError } = await supabase.from('scores').insert({
                     user_id: user.id,
                     username: finalPlayerName,
                     date_key: dateKey,
                     moves,
                     time_ms: timeMs
                 });
-                improved = true;
+                
+                if (insertError) {
+                    console.error('[Leaderboard] Score insert error:', insertError);
+                } else {
+                    improved = true;
+                    console.log('[Leaderboard] Score saved successfully:', { dateKey, moves, timeMs, username: finalPlayerName });
+                }
             }
 
             // Fetch new leaderboard
@@ -278,7 +294,7 @@ export async function submitScore(
             };
         }
     } catch (err) {
-        console.error("Supabase submit error:", err);
+        console.error("[Leaderboard] Supabase submit error:", err);
     }
   }
 
