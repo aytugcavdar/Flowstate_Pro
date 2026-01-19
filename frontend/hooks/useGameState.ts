@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { GameState, Grid, NodeStatus, TileType, GridPos } from '../types';
 import { calculateFlow, checkWinCondition } from '../services/gameLogic';
 import { generateDailyLevel } from '../services/levelGenerator';
+import { getHintFromSolution } from '../services/solutionService';
 import { playSound } from '../services/audio';
 import { STORAGE_KEY_STATE } from '../constants';
 import { haptic } from '../services/hapticService';
@@ -34,14 +35,28 @@ export const useGameState = (gameKey: string) => {
             try {
                 const state: GameState = JSON.parse(saved);
                 if (state.gameDate === gameKey) {
-                    setGrid(state.grid);
-                    setMoves(state.moves);
-                    setIsWon(state.isWon);
-                    setCharges(state.charges);
-                    hasChargedRef.current = state.charges > 0; // rough sync
-                    setMoveHistory([]); // Don't persist move history
-                    setLoading(false);
-                    return;
+                    // If the game was won and it's a replayable mode, start fresh
+                    const isCampaignLevel = gameKey.startsWith('INIT_') || 
+                                           gameKey.startsWith('SPRAWL_') || 
+                                           gameKey.startsWith('DEEP_') || 
+                                           gameKey.startsWith('CORE_') || 
+                                           gameKey.startsWith('OMEGA_');
+                    const isPractice = gameKey.startsWith('PRACTICE_');
+                    const isReplayable = isCampaignLevel || isPractice;
+                    
+                    if (state.isWon && isReplayable) {
+                        // Don't load won replayable games from cache - allow replay
+                        console.log('[useGameState] Skipping cache for completed replayable level');
+                    } else {
+                        setGrid(state.grid);
+                        setMoves(state.moves);
+                        setIsWon(state.isWon);
+                        setCharges(state.charges);
+                        hasChargedRef.current = state.charges > 0;
+                        setMoveHistory([]);
+                        setLoading(false);
+                        return;
+                    }
                 }
             } catch (e) { console.error("Save load error", e); }
         }
@@ -177,17 +192,23 @@ export const useGameState = (gameKey: string) => {
         return true;
     }, [grid, isWon, loading, moveHistory]);
 
-    // Get hint for a random non-solved tile (returns position and correct rotation)
+    // Get hint for a tile that is currently wrong (uses stored solution)
     const getHintableTile = useCallback((): { position: GridPos; correctRotation: number } | null => {
         if (isWon || loading) return null;
         
-        // Find tiles that could be rotated to improve flow
-        // This is a simplified version - in production would use the solution grid
+        // First try to get hint from stored solution (most accurate)
+        const storedHint = getHintFromSolution(gameKey, grid);
+        if (storedHint) {
+            return storedHint;
+        }
+        
+        // Fallback: Find tiles that could be rotated to improve flow
+        // This is used when no solution is stored (shouldn't happen normally)
+        console.log('[useGameState] No stored solution, using fallback hint');
         const rotatableTiles: { r: number; c: number; tile: typeof grid[0][0] }[] = [];
         
         grid.forEach((row, r) => {
             row.forEach((tile, c) => {
-                // Find non-fixed, rotatable tiles that don't have flow yet or are wrong
                 if (!tile.fixed && 
                     tile.type !== TileType.EMPTY && 
                     tile.type !== TileType.BLOCK &&
@@ -200,10 +221,8 @@ export const useGameState = (gameKey: string) => {
         
         if (rotatableTiles.length === 0) return null;
         
-        // Pick a random tile
+        // Pick a random tile and find best rotation
         const randomTile = rotatableTiles[Math.floor(Math.random() * rotatableTiles.length)];
-        
-        // Try all rotations to find one that increases power
         let bestRotation = randomTile.tile.rotation;
         let bestPower = grid.flat().filter(t => t.hasFlow).length;
         
@@ -225,7 +244,7 @@ export const useGameState = (gameKey: string) => {
             position: { r: randomTile.r, c: randomTile.c },
             correctRotation: bestRotation
         };
-    }, [grid, isWon, loading]);
+    }, [grid, isWon, loading, gameKey]);
 
     // Apply hint - rotate tile to the suggested rotation
     const applyHint = useCallback((r: number, c: number, targetRotation: number) => {

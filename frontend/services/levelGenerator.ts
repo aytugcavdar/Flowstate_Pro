@@ -3,6 +3,7 @@ import { Grid, TileType, NodeStatus, GridPos, DIRECTIONS } from '../types';
 import { GRID_SIZE } from '../constants';
 import { SeededRNG } from '../utils/rng';
 import { calculateFlow, checkWinCondition } from './gameLogic';
+import { storeSolution } from './solutionService';
 
 // --- Geometry Helpers ---
 
@@ -89,7 +90,11 @@ function findPath(
 
 // --- Main Generator ---
 
+// Store the current game key for solution storage
+let currentGameKey: string = '';
+
 export const generateDailyLevel = (dateStr: string): Grid => {
+    currentGameKey = dateStr;
     const rng = new SeededRNG(dateStr);
     
     for (let attempt = 0; attempt < 30; attempt++) {
@@ -210,12 +215,22 @@ export const generateDailyLevel = (dateStr: string): Grid => {
         grid[sink.r][sink.c].type = TileType.SINK; 
         if (validationFlow[sink.r][sink.c].flowColor === 3) {
             fillEmptyTiles(rng, grid);
+            
+            // IMPORTANT: Store the solution BEFORE scrambling
+            // This is the solved state that we want players to recreate
+            const solvedGrid = calculateFlow(grid);
+            storeSolution(currentGameKey, solvedGrid);
+            
+            // Now scramble the grid
             scrambleGrid(rng, grid);
             return calculateFlow(grid);
         }
     }
     
-    return createSimpleFallback(rng);
+    // Fallback - also store its solution
+    const fallback = createSimpleFallback(rng);
+    storeSolution(currentGameKey, fallback);
+    return fallback;
 };
 
 // --- Rendering Helpers ---

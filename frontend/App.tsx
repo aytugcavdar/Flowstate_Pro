@@ -180,13 +180,26 @@ const App: React.FC = () => {
         if (!loading && !loadingCompleteRef.current) {
             // Loading just completed
             loadingCompleteRef.current = true;
-            if (isWon) {
-                // Game was loaded as already won (from cache)
+
+            // Check if this is a replayable mode (campaign or practice)
+            const isCampaignLevel = currentKey.startsWith('INIT_') ||
+                currentKey.startsWith('SPRAWL_') ||
+                currentKey.startsWith('DEEP_') ||
+                currentKey.startsWith('CORE_') ||
+                currentKey.startsWith('OMEGA_');
+            const isPractice = currentKey.startsWith('PRACTICE_');
+            const isReplayable = isCampaignLevel || isPractice;
+
+            if (isWon && !isReplayable) {
+                // Game was loaded as already won (from cache) - only for DAILY mode
                 wasLoadedAsWonRef.current = true;
                 console.log('[App] Loaded cached won game, skipping celebration');
+            } else if (isWon && isReplayable) {
+                // Replayable mode - don't mark as cached, allow fresh play
+                console.log('[App] Replayable mode ready');
             }
         }
-    }, [loading, isWon]);
+    }, [loading, isWon, currentKey]);
 
     // Reset refs when game key changes (new game)
     useEffect(() => {
