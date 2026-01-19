@@ -8,7 +8,7 @@ import {
     formatTime,
     getRankSuffix
 } from '../services/leaderboardService';
-import { loadSettings } from '../services/settingsService';
+import { getStoredUsername } from '../services/usernameService';
 import { playSound } from '../services/audio';
 import { isSupabaseConfigured } from '../services/supabase';
 
@@ -44,8 +44,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
     const loadLeaderboardData = async () => {
         setLoading(true);
-        const settings = loadSettings();
-        const playerName = settings.playerName || 'NETRUNNER';
+        // Use stored username from usernameService (where UsernameModal saves it)
+        const playerName = getStoredUsername() || undefined;
 
         // If player has a score to submit
         if (playerMoves !== undefined && playerTime !== undefined) {

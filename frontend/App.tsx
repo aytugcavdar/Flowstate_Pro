@@ -357,10 +357,11 @@ const App: React.FC = () => {
 
             // Auto-submit score to leaderboard (Daily only)
             if (mode === 'DAILY') {
-                const settings = loadSettings(); // Ensure we have latest name
-                submitScore(currentKey, moves, gameTimeMs, settings.playerName || 'NETRUNNER')
-                    .then(() => console.log('Score submitted automatically'))
-                    .catch(err => console.error('Auto-submit failed:', err));
+                // Use stored username from usernameService (where UsernameModal saves it)
+                const storedName = getStoredUsername();
+                submitScore(currentKey, moves, gameTimeMs, storedName || undefined)
+                    .then(() => console.log('[App] Score submitted automatically'))
+                    .catch(err => console.error('[App] Auto-submit failed:', err));
             }
         } else {
             setShowWin(true);
