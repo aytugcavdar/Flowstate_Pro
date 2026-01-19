@@ -17,114 +17,217 @@ export const CampaignMenu: React.FC<CampaignMenuProps> = ({ progress, onSelectLe
     const totalStars = calculateTotalStars(progress);
     const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
 
-    // If a chapter is selected, show its levels
+    // Level Grid View
     if (selectedChapterId) {
         const chapter = CAMPAIGN_CHAPTERS.find(c => c.id === selectedChapterId)!;
+        const chapterIdx = parseInt(chapter.id.replace('ch', ''));
+
         return (
-            <div className="w-full max-w-lg p-4 animate-in fade-in slide-in-from-right-4">
-                <button onClick={() => setSelectedChapterId(null)} className="mb-4 text-xs text-cyan-400 hover:text-white flex items-center gap-2">
-                    <span>←</span> {t.campaign.chapter} SELECT
-                </button>
-                
-                <h2 className="text-2xl font-black text-white mb-2">{chapter.title}</h2>
-                <p className="text-sm text-slate-400 mb-6">{chapter.description}</p>
-                
-                <div className="grid grid-cols-4 gap-3">
+            <div className="w-full max-w-lg mx-auto p-4 animate-in fade-in">
+                {/* Chapter Header */}
+                <div className="mb-6">
+                    <button
+                        onClick={() => setSelectedChapterId(null)}
+                        className="text-xs text-cyan-400 hover:text-white mb-3 flex items-center gap-1"
+                    >
+                        ← {t.buttons.back}
+                    </button>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <span className="text-xs text-slate-500 tracking-widest block mb-1">
+                                {t.campaign.chapter} {chapterIdx}
+                            </span>
+                            <h2 className="text-2xl font-black text-white">{chapter.title}</h2>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-yellow-400 font-bold text-lg">★ {chapter.levels.reduce((a, l) => a + (progress.levelStars[l.id] || 0), 0)}</span>
+                            <span className="text-slate-500 text-sm">/{chapter.levels.length * 3}</span>
+                        </div>
+                    </div>
+                    <p className="text-sm text-slate-500 mt-2">{chapter.description}</p>
+                </div>
+
+                {/* Level Grid */}
+                <div className="grid grid-cols-3 gap-3">
                     {chapter.levels.map((level, idx) => {
                         const stars = progress.levelStars[level.id] || 0;
-                        const isLocked = idx > 0 && !progress.levelStars[chapter.levels[idx-1].id]; // Simple lock: must beat prev level
-                        
-                        // First level of unlocked chapter is always open
-                        const isOpen = !isLocked; 
+                        const isLocked = idx > 0 && !progress.levelStars[chapter.levels[idx - 1].id];
+                        const isOpen = !isLocked;
+                        const isBoss = level.isBoss;
+                        const isCompleted = stars > 0;
 
                         return (
-                            <button 
+                            <button
                                 key={level.id}
                                 disabled={!isOpen}
                                 onClick={() => { playSound('click'); onSelectLevel(level); }}
-                                className={`aspect-square rounded-lg border flex flex-col items-center justify-center relative group
-                                    ${isOpen 
-                                        ? 'bg-slate-800 border-slate-600 hover:border-cyan-400 hover:bg-slate-700' 
-                                        : 'bg-slate-900 border-slate-800 opacity-50 cursor-not-allowed'
+                                className={`relative rounded-xl p-3 transition-all duration-200
+                                    ${isBoss ? 'col-span-3' : ''}
+                                    ${isBoss
+                                        ? isCompleted
+                                            ? 'bg-gradient-to-r from-yellow-600 to-orange-600 shadow-lg shadow-yellow-500/20'
+                                            : isOpen
+                                                ? 'bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-600/40 hover:border-yellow-500'
+                                                : 'bg-slate-900 border border-slate-800'
+                                        : isCompleted
+                                            ? 'bg-gradient-to-br from-cyan-600 to-blue-700 shadow-lg shadow-cyan-500/20'
+                                            : isOpen
+                                                ? 'bg-slate-800/80 border border-slate-600 hover:border-cyan-500 hover:bg-slate-700'
+                                                : 'bg-slate-900/50 border border-slate-800 opacity-40'
                                     }
                                 `}
                             >
-                                <div className="text-lg font-bold font-mono text-slate-200">{idx + 1}</div>
-                                {stars > 0 && (
-                                    <div className="flex gap-0.5 mt-1">
-                                        {[1,2,3].map(s => (
-                                            <span key={s} className={`text-[8px] ${s <= stars ? 'text-yellow-400' : 'text-slate-700'}`}>★</span>
+                                {/* Level Number/Icon */}
+                                <div className={`text-center ${isBoss ? 'py-2' : ''}`}>
+                                    {isBoss ? (
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="text-3xl">{level.title.split(' ')[0]}</span>
+                                            <div>
+                                                <div className="text-xs text-yellow-200/70 uppercase">Boss</div>
+                                                <div className="text-lg font-bold text-white">{level.title.split(' ').slice(1).join(' ')}</div>
+                                            </div>
+                                        </div>
+                                    ) : isLocked ? (
+                                        <span className="text-2xl opacity-30">🔒</span>
+                                    ) : (
+                                        <span className="text-xl font-bold text-white">{idx + 1}</span>
+                                    )}
+                                </div>
+
+                                {/* Stars */}
+                                {!isBoss && (
+                                    <div className="flex justify-center gap-0.5 mt-2">
+                                        {[1, 2, 3].map(s => (
+                                            <span key={s} className={`text-xs ${s <= stars ? 'text-yellow-400' : 'text-slate-700'}`}>★</span>
                                         ))}
                                     </div>
                                 )}
-                                {!isOpen && <div className="absolute inset-0 flex items-center justify-center bg-black/50">🔒</div>}
+
+                                {/* Level title */}
+                                {!isBoss && (
+                                    <div className={`text-[9px] mt-1 text-center truncate ${isCompleted ? 'text-white/80' : 'text-slate-500'}`}>
+                                        {level.title}
+                                    </div>
+                                )}
+
+                                {/* Boss stars */}
+                                {isBoss && stars > 0 && (
+                                    <div className="flex justify-center gap-1 mt-2">
+                                        {[1, 2, 3].map(s => (
+                                            <span key={s} className={`text-lg ${s <= stars ? 'text-yellow-300' : 'text-yellow-900'}`}>★</span>
+                                        ))}
+                                    </div>
+                                )}
                             </button>
-                        )
+                        );
                     })}
                 </div>
             </div>
-        )
+        );
     }
 
     // Chapter List
+    const icons = ['⚡', '🌆', '🌐', '⚙️', '🌟'];
+    const gradients = [
+        'from-cyan-500/20 to-blue-500/20 border-cyan-500/30',
+        'from-purple-500/20 to-pink-500/20 border-purple-500/30',
+        'from-green-500/20 to-teal-500/20 border-green-500/30',
+        'from-orange-500/20 to-red-500/20 border-orange-500/30',
+        'from-yellow-500/20 to-amber-500/20 border-yellow-500/30',
+    ];
+
     return (
-        <div className="w-full max-w-lg p-4 flex flex-col gap-4 animate-in fade-in">
-             <div className="flex justify-between items-center mb-2">
-                 <h2 className="text-xl font-bold text-white tracking-widest">{t.campaign.title}</h2>
-                 <div className="text-yellow-500 font-bold text-sm">★ {totalStars}</div>
-             </div>
+        <div className="w-full max-w-lg mx-auto p-4 animate-in fade-in">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-black text-white tracking-wide">{t.campaign.title}</h1>
+                    <p className="text-xs text-slate-500">{lang === 'tr' ? 'Hikayeyi tamamla' : 'Complete the story'}</p>
+                </div>
+                <div className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+                    <span className="text-yellow-400 text-lg">★</span>
+                    <span className="text-yellow-400 font-bold">{totalStars}</span>
+                </div>
+            </div>
 
-             <div className="space-y-3">
-                 {CAMPAIGN_CHAPTERS.map(chapter => {
-                     const isUnlocked = progress.unlockedChapters.includes(chapter.id);
-                     const chapterStars = chapter.levels.reduce((acc, lvl) => acc + (progress.levelStars[lvl.id] || 0), 0);
-                     const maxStars = chapter.levels.length * 3;
+            {/* Chapter Cards */}
+            <div className="space-y-4">
+                {CAMPAIGN_CHAPTERS.map((chapter, idx) => {
+                    const isUnlocked = progress.unlockedChapters.includes(chapter.id);
+                    const chapterStars = chapter.levels.reduce((a, l) => a + (progress.levelStars[l.id] || 0), 0);
+                    const maxStars = chapter.levels.length * 3;
+                    const completed = chapter.levels.filter(l => progress.levelStars[l.id] > 0).length;
+                    const percent = (completed / chapter.levels.length) * 100;
 
-                     return (
-                         <button 
+                    return (
+                        <button
                             key={chapter.id}
                             disabled={!isUnlocked}
                             onClick={() => { playSound('click'); setSelectedChapterId(chapter.id); }}
-                            className={`w-full text-left p-4 rounded-lg border relative overflow-hidden transition-all
-                                ${isUnlocked 
-                                    ? 'bg-slate-800 border-slate-600 hover:border-cyan-500 group' 
-                                    : 'bg-slate-900/50 border-slate-800 opacity-60'
+                            className={`w-full text-left rounded-2xl overflow-hidden transition-all duration-200
+                                ${isUnlocked
+                                    ? 'hover:scale-[1.02] active:scale-[0.98]'
+                                    : 'opacity-50 grayscale'
                                 }
                             `}
-                         >
-                            {isUnlocked ? (
-                                <>
-                                    <div className="flex justify-between items-start z-10 relative">
-                                        <div>
-                                            <div className="text-[10px] text-cyan-500 font-bold tracking-widest mb-1">{t.campaign.chapter} {chapter.id.replace('ch', '')}</div>
-                                            <div className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">{chapter.title}</div>
+                        >
+                            <div className={`p-5 bg-gradient-to-r ${gradients[idx]} border backdrop-blur-sm`}>
+                                <div className="flex items-start gap-4">
+                                    {/* Icon */}
+                                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl
+                                        ${isUnlocked ? 'bg-white/10' : 'bg-slate-800'}
+                                    `}>
+                                        {isUnlocked ? icons[idx] : '🔒'}
+                                    </div>
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 uppercase tracking-widest">
+                                                    {t.campaign.chapter} {idx + 1}
+                                                </span>
+                                                <h3 className="text-lg font-bold text-white mt-0.5">{chapter.title}</h3>
+                                            </div>
+                                            {isUnlocked && (
+                                                <div className="text-right">
+                                                    <div className="text-yellow-400 font-bold">★ {chapterStars}</div>
+                                                    <div className="text-[10px] text-slate-500">{completed}/{chapter.levels.length}</div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-xs text-yellow-500 font-mono">{chapterStars}/{maxStars} ★</div>
-                                        </div>
+
+                                        {/* Progress bar */}
+                                        {isUnlocked && (
+                                            <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-white/60 rounded-full transition-all duration-500"
+                                                    style={{ width: `${percent}%` }}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Locked message */}
+                                        {!isUnlocked && (
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                {t.campaign.locked} <span className="text-yellow-600">★ {chapter.requiredStars}</span>
+                                            </p>
+                                        )}
                                     </div>
-                                    <div className="mt-2 w-full h-1 bg-slate-700 rounded-full overflow-hidden z-10 relative">
-                                        <div className="h-full bg-cyan-500" style={{ width: `${(chapterStars/maxStars)*100}%` }}></div>
-                                    </div>
-                                    {/* Bg Decoration */}
-                                    <div className="absolute right-0 bottom-0 text-slate-700/20 text-6xl font-black -mr-4 -mb-2 pointer-events-none">
-                                        {chapter.id.replace('ch', '0')}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex items-center justify-between text-slate-500">
-                                    <div className="font-mono">{t.campaign.locked} <span className="text-yellow-600">{chapter.requiredStars} ★</span></div>
-                                    <div className="text-2xl">🔒</div>
                                 </div>
-                            )}
-                         </button>
-                     )
-                 })}
-             </div>
-             
-             <button onClick={onBack} className="mt-4 py-3 text-sm text-slate-500 hover:text-white border border-transparent hover:border-slate-700 rounded transition-all">
-                 {t.buttons.back}
-             </button>
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Back Button */}
+            <button
+                onClick={onBack}
+                className="w-full mt-6 py-3 text-slate-500 hover:text-white text-sm border border-slate-800 hover:border-slate-600 rounded-xl transition-colors"
+            >
+                {t.buttons.back}
+            </button>
         </div>
     );
-}
+};

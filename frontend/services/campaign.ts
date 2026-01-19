@@ -21,6 +21,8 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
             { id: "c1_l6", seed: "INIT_006", parMoves: 20, title: "Firewall Alpha" },
             { id: "c1_l7", seed: "INIT_007", parMoves: 20, title: "Proxy Chain" },
             { id: "c1_l8", seed: "INIT_008", parMoves: 22, title: "Root Access" },
+            // BOSS LEVEL
+            { id: "c1_boss", seed: "BOSS_CH1", parMoves: 25, title: "🔥 GUARDIAN", isBoss: true, bossType: 'TIME_ATTACK', timeLimit: 120 },
         ]
     },
     {
@@ -37,6 +39,8 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
             { id: "c2_l6", seed: "SPRAWL_006", parMoves: 28, title: "Interference" },
             { id: "c2_l7", seed: "SPRAWL_007", parMoves: 30, title: "Gridlock" },
             { id: "c2_l8", seed: "SPRAWL_008", parMoves: 32, title: "Overload" },
+            // BOSS LEVEL
+            { id: "c2_boss", seed: "BOSS_CH2", parMoves: 35, title: "⚡ OVERLORD", isBoss: true, bossType: 'MULTI_SINK', gridSize: 10 },
         ]
     },
     {
@@ -53,6 +57,8 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
             { id: "c3_l6", seed: "DEEP_006", parMoves: 35, title: "Zero Day" },
             { id: "c3_l7", seed: "DEEP_007", parMoves: 38, title: "Backdoor" },
             { id: "c3_l8", seed: "DEEP_008", parMoves: 40, title: "Admin Shell" },
+            // BOSS LEVEL
+            { id: "c3_boss", seed: "BOSS_CH3", parMoves: 45, title: "🌀 PHANTOM", isBoss: true, bossType: 'SHIFTING', timeLimit: 180 },
         ]
     },
     {
@@ -69,6 +75,8 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
             { id: "c4_l6", seed: "CORE_006", parMoves: 42, title: "System Halt" },
             { id: "c4_l7", seed: "CORE_007", parMoves: 45, title: "Critical Error" },
             { id: "c4_l8", seed: "CORE_008", parMoves: 50, title: "Blue Screen" },
+            // BOSS LEVEL
+            { id: "c4_boss", seed: "BOSS_CH4", parMoves: 55, title: "💀 TITAN", isBoss: true, bossType: 'MEGA_GRID', gridSize: 12 },
         ]
     },
     {
@@ -82,6 +90,8 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
             { id: "c5_l3", seed: "OMEGA_003", parMoves: 50, title: "Big Bang" },
             { id: "c5_l4", seed: "OMEGA_004", parMoves: 55, title: "Heat Death" },
             { id: "c5_l5", seed: "OMEGA_005", parMoves: 60, title: "Simulation End" },
+            // FINAL BOSS
+            { id: "c5_boss", seed: "BOSS_FINAL", parMoves: 70, title: "🌟 SINGULARITY", isBoss: true, bossType: 'MEGA_GRID', gridSize: 12, timeLimit: 300 },
         ]
     }
 ];

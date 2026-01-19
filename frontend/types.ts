@@ -100,11 +100,17 @@ export type GameMode = 'DAILY' | 'PRACTICE' | 'CAMPAIGN' | 'ENDLESS' | 'SPEEDRUN
 
 // --- Campaign Types ---
 
+export type BossType = 'TIME_ATTACK' | 'MULTI_SINK' | 'SHIFTING' | 'MEGA_GRID';
+
 export interface CampaignLevel {
   id: string;
-  seed: string; // The seed used for level generation
-  parMoves: number; // Moves required for 3 stars
+  seed: string;
+  parMoves: number;
   title: string;
+  isBoss?: boolean;
+  bossType?: BossType;
+  timeLimit?: number; // seconds, for TIME_ATTACK
+  gridSize?: number;  // default 8, bosses can be 10 or 12
 }
 
 export interface CampaignChapter {
