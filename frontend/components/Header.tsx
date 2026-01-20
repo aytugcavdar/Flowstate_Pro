@@ -41,23 +41,17 @@ export const Header: React.FC<HeaderProps> = ({
 
     return (
         <header className="w-full max-w-lg sticky top-0 z-20 safe-area-inset">
-            {/* Top Bar - Clean & Minimal */}
-            <div
-                className="px-4 py-3 backdrop-blur-lg border-b"
-                style={{
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    borderColor: 'var(--color-border)'
-                }}
-            >
+            {/* Top Bar */}
+            <div className="bg-slate-900/95 backdrop-blur-sm px-4 py-3 rounded-b-xl border-b border-slate-800">
                 <div className="flex justify-between items-center">
                     {/* Left: Logo & Settings */}
                     <div className="flex items-center gap-3">
-                        <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-transparent">
+                        <h1 className="text-lg font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400">
                             FLOWSTATE
                         </h1>
                         <button
                             onClick={onOpenSettings}
-                            className="text-slate-400 hover:text-white transition-colors p-1"
+                            className="text-slate-400 hover:text-cyan-400 transition-colors"
                             title={lang === 'tr' ? 'Ayarlar' : 'Settings'}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

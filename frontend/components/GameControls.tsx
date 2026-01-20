@@ -20,20 +20,47 @@ export const GameControls: React.FC<GameControlsProps> = ({
 
     return (
         <div className="w-full flex flex-col gap-3 px-2">
-            {/* Capacitor Ability Bar - Modern Design */}
-            <div className="w-full flex justify-between items-center px-4 py-2.5 bg-gradient-to-r from-slate-900/90 to-slate-800/90 rounded-xl border border-slate-700/50 backdrop-blur-md shadow-lg">
+            {/* Capacitor Ability Bar - Premium Glass Design */}
+            <div
+                className="w-full flex justify-between items-center px-4 py-3 rounded-2xl"
+                style={{
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: charges > 0
+                        ? '1px solid rgba(59, 130, 246, 0.4)'
+                        : '1px solid rgba(255, 255, 255, 0.08)',
+                    boxShadow: charges > 0
+                        ? '0 0 20px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                        : '0 8px 32px rgba(0, 0, 0, 0.3)'
+                }}
+            >
                 <div className="flex items-center gap-2">
-                    <span className={`text-lg ${charges > 0 ? 'animate-bounce' : 'opacity-40'}`}>
+                    <span
+                        className={`text-xl transition-all duration-300 ${charges > 0 ? 'animate-pulse' : 'opacity-30'}`}
+                        style={{ filter: charges > 0 ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.8))' : 'none' }}
+                    >
                         {charges > 0 ? '⚡' : '🔋'}
                     </span>
                     <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
                         {lang === 'tr' ? 'Yetenek' : 'Ability'}
                     </span>
                 </div>
-                <div className={`text-xs font-bold font-mono px-3 py-1 rounded-lg transition-all ${charges > 0
-                        ? 'text-blue-300 bg-blue-500/20 border border-blue-400/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]'
-                        : 'text-slate-600 bg-slate-800/50'
-                    }`}>
+                <div
+                    className={`text-xs font-bold font-mono px-4 py-1.5 rounded-xl transition-all duration-300`}
+                    style={{
+                        background: charges > 0
+                            ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%)'
+                            : 'rgba(30, 41, 59, 0.5)',
+                        color: charges > 0 ? '#93c5fd' : '#64748b',
+                        border: charges > 0
+                            ? '1px solid rgba(59, 130, 246, 0.4)'
+                            : '1px solid rgba(100, 116, 139, 0.2)',
+                        boxShadow: charges > 0
+                            ? '0 0 15px rgba(59, 130, 246, 0.2)'
+                            : 'none'
+                    }}
+                >
                     {charges > 0
                         ? (lang === 'tr' ? '🎯 BUG\'A TIKLA' : '🎯 CLICK BUG')
                         : (lang === 'tr' ? 'BOŞ' : 'EMPTY')
@@ -55,14 +82,16 @@ export const GameControls: React.FC<GameControlsProps> = ({
                             <span>{loadingHint ? '...' : t.buttons.hint}</span>
                         </button>
 
-                        {/* Reset Button */}
-                        <button
-                            onClick={onReset}
-                            className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-slate-800/80 to-slate-700/60 hover:from-slate-700/80 hover:to-slate-600/60 text-slate-300 text-sm font-bold rounded-xl border border-slate-600/50 hover:border-slate-500/70 transition-all duration-300 shadow-lg"
-                        >
-                            <span className="text-lg group-hover:rotate-180 transition-transform duration-500">🔄</span>
-                            <span>{t.buttons.reset}</span>
-                        </button>
+                        {/* Reset Button - Only in Practice mode (Daily is one-shot) */}
+                        {mode === 'PRACTICE' && (
+                            <button
+                                onClick={onReset}
+                                className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-slate-800/80 to-slate-700/60 hover:from-slate-700/80 hover:to-slate-600/60 text-slate-300 text-sm font-bold rounded-xl border border-slate-600/50 hover:border-slate-500/70 transition-all duration-300 shadow-lg"
+                            >
+                                <span className="text-lg group-hover:rotate-180 transition-transform duration-500">🔄</span>
+                                <span>{t.buttons.reset}</span>
+                            </button>
+                        )}
                     </>
                 )}
 

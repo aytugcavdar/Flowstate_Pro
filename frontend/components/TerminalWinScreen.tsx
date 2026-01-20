@@ -236,7 +236,14 @@ export const TerminalWinScreen: React.FC<TerminalWinScreenProps> = ({
     }, [moves, timeMs, unlockedBadges, winAnalysis, xpGained, missions, completedMissionIds, campaignStars]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{
+                backgroundColor: 'rgba(2, 6, 23, 0.95)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)'
+            }}
+        >
             {/* Confetti celebration */}
             <ConfettiEffect
                 active={showConfetti}
@@ -245,16 +252,33 @@ export const TerminalWinScreen: React.FC<TerminalWinScreenProps> = ({
                 onComplete={() => setShowConfetti(false)}
             />
 
+            {/* Premium Glass Container */}
             <div
-                className="w-full max-w-md h-[550px] flex flex-col font-mono rounded-md shadow-2xl relative overflow-hidden"
+                className="w-full max-w-md h-[550px] flex flex-col font-mono rounded-2xl shadow-2xl relative overflow-hidden"
                 style={{
-                    backgroundColor: 'var(--color-bg-primary)',
-                    border: '1px solid var(--color-success)'
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    boxShadow: `
+                        0 0 60px rgba(34, 197, 94, 0.15),
+                        0 0 0 1px rgba(34, 197, 94, 0.2),
+                        0 20px 60px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05)
+                    `
                 }}
             >
+                {/* Animated gradient top border */}
+                <div
+                    className="absolute top-0 left-0 right-0 h-1"
+                    style={{
+                        background: 'linear-gradient(90deg, #22c55e, #22d3ee, #8b5cf6, #e879f9, #22c55e)',
+                        backgroundSize: '200% 100%',
+                        animation: 'rainbow-flow 3s linear infinite'
+                    }}
+                />
+
                 {/* CRT Scanline Overlay */}
-                <div className="absolute inset-0 scanlines opacity-20 pointer-events-none"></div>
-                <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: 'rgba(34, 197, 94, 0.03)' }}></div>
+                <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.05) 0%, transparent 70%)' }} />
 
                 {/* Scrollable Content */}
                 <div className="flex-1 p-6 overflow-y-auto space-y-1 scrollbar-hide">
@@ -262,30 +286,67 @@ export const TerminalWinScreen: React.FC<TerminalWinScreenProps> = ({
                     <div ref={bottomRef}></div>
                 </div>
 
-                {/* Footer Buttons */}
+                {/* Footer Buttons - Premium Glass Style */}
                 {isComplete && (
-                    <div className="p-4 border-t border-green-900/50 bg-slate-900/50 flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-500">
+                    <div
+                        className="p-4 flex flex-col gap-3 animate-in slide-in-from-bottom-4 duration-500"
+                        style={{
+                            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                            borderTop: '1px solid rgba(34, 197, 94, 0.2)'
+                        }}
+                    >
                         <div className="flex gap-2 w-full">
-                            {/* Text Share */}
-                            <button onClick={onShare} className="flex-1 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded flex items-center justify-center gap-2 group shadow-lg shadow-green-900/50">
+                            {/* Text Share - Glass Green */}
+                            <button
+                                onClick={onShare}
+                                className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02]"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(22, 163, 74, 0.2) 100%)',
+                                    border: '1px solid rgba(34, 197, 94, 0.4)',
+                                    color: '#86efac',
+                                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.2)'
+                                }}
+                            >
                                 <span>📋</span>
                                 <span>{t.buttons.share}</span>
                             </button>
-                            {/* Visual Share */}
+
+                            {/* Visual Share - Glass Magenta */}
                             <button
                                 onClick={() => { playSound('click'); setShowShareModal(true); }}
-                                className="flex-1 py-3 bg-fuchsia-700 hover:bg-fuchsia-600 text-white font-bold rounded flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-900/50"
+                                className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02]"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(217, 70, 239, 0.3) 0%, rgba(168, 85, 247, 0.2) 100%)',
+                                    border: '1px solid rgba(217, 70, 239, 0.4)',
+                                    color: '#f0abfc',
+                                    boxShadow: '0 0 20px rgba(217, 70, 239, 0.2)'
+                                }}
                             >
                                 <span>📸</span>
                                 <span>{lang === 'tr' ? 'Görsel' : 'Image'}</span>
                             </button>
+
+                            {/* Next Level - Glass Slate */}
                             {(mode === 'PRACTICE' || (mode === 'CAMPAIGN' && hasNextLevel)) && (
-                                <button onClick={onNext} className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded border border-slate-600">
+                                <button
+                                    onClick={onNext}
+                                    className="flex-1 py-3 font-bold rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(51, 65, 85, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%)',
+                                        border: '1px solid rgba(100, 116, 139, 0.4)',
+                                        color: '#e2e8f0'
+                                    }}
+                                >
                                     {t.buttons.next}
                                 </button>
                             )}
                         </div>
-                        <button onClick={onClose} className="w-full py-2 bg-transparent hover:bg-slate-800 text-slate-500 hover:text-slate-300 text-xs font-bold rounded border border-transparent hover:border-slate-700 transition-colors">
+
+                        {/* Close Button - Subtle */}
+                        <button
+                            onClick={onClose}
+                            className="w-full py-2 text-slate-500 hover:text-slate-300 text-xs font-bold rounded-lg transition-all duration-200 hover:bg-white/5"
+                        >
                             {t.buttons.close}
                         </button>
                     </div>

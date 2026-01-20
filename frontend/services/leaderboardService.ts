@@ -229,83 +229,116 @@ export async function submitScore(
   if (isSupabaseConfigured() && supabase) {
     try {
         // Authenticate anonymously if needed
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-            await supabase.auth.signInAnonymously();
+            console.log('[Leaderboard] No session, signing in anonymously...');
+            const { error: authError } = await supabase.auth.signInAnonymously();
+            if (authError) {
+                console.error('[Leaderboard] Anonymous sign-in failed:', authError);
+                return { rank: 0, entries: [], improved: false };
+            }
         }
 
-        const user = (await supabase.auth.getUser()).data.user;
-        if (user) {
-            // Always sync profile username (ensures username is always current in DB)
-            const { error: profileError } = await supabase.from('profiles').upsert({ 
-                id: user.id, 
-                username: finalPlayerName,
-                ...getTimezoneMetadata(),
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-            
-            if (profileError) {
-                console.warn('[Leaderboard] Profile upsert warning:', profileError);
-            }
+        const userResult = await supabase.auth.getUser();
+        const user = userResult.data.user;
+        
+        if (!user) {
+            console.error('[Leaderboard] No user after auth - this should not happen');
+            return { rank: 0, entries: [], improved: false };
+        }
 
-            // Check existing score
-            const { data: existing } = await supabase
-                .from('scores')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('date_key', dateKey)
-                .single();
+        console.log('[Leaderboard] Submitting score for user:', { 
+            userId: user.id, 
+            username: finalPlayerName, 
+            dateKey, 
+            moves, 
+            timeMs 
+        });
 
-            let shouldInsert = true;
-            let improved = false;
+        // Always sync profile username first (ensures profile exists before score insert)
+        const { error: profileError } = await supabase.from('profiles').upsert({ 
+            id: user.id, 
+            username: finalPlayerName,
+            ...getTimezoneMetadata(),
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+        
+        if (profileError) {
+            console.error('[Leaderboard] Profile upsert FAILED:', profileError);
+            // Continue anyway - scores table references auth.users not profiles in master schema
+        } else {
+            console.log('[Leaderboard] Profile synced successfully');
+        }
 
-            if (existing) {
-                if (moves < existing.moves || (moves === existing.moves && timeMs < existing.time_ms)) {
-                    // Update existing score (improved)
-                    const { error: updateError } = await supabase
-                        .from('scores')
-                        .update({ moves, time_ms: timeMs, username: finalPlayerName, ...getTimezoneMetadata() })
-                        .eq('id', existing.id);
-                    
-                    if (updateError) {
-                        console.error('[Leaderboard] Score update error:', updateError);
-                    } else {
-                        improved = true;
-                    }
-                    shouldInsert = false;
-                } else {
-                    shouldInsert = false; // Not improved
-                }
-            }
+        // Check existing score
+        const { data: existing, error: selectError } = await supabase
+            .from('scores')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('date_key', dateKey)
+            .single();
 
-            if (shouldInsert) {
-                const { error: insertError } = await supabase.from('scores').insert({
-                    user_id: user.id,
-                    username: finalPlayerName,
-                    date_key: dateKey,
-                    moves,
-                    time_ms: timeMs,
-                    ...getTimezoneMetadata()
-                });
+        if (selectError && selectError.code !== 'PGRST116') {
+            console.error('[Leaderboard] Score lookup error:', selectError);
+        }
+
+        let shouldInsert = true;
+        let improved = false;
+
+        if (existing) {
+            console.log('[Leaderboard] Found existing score:', existing);
+            if (moves < existing.moves || (moves === existing.moves && timeMs < existing.time_ms)) {
+                // Update existing score (improved)
+                console.log('[Leaderboard] Attempting to update score to:', { moves, timeMs });
+                const { error: updateError } = await supabase
+                    .from('scores')
+                    .update({ moves, time_ms: timeMs, username: finalPlayerName })
+                    .eq('id', existing.id);
                 
-                if (insertError) {
-                    console.error('[Leaderboard] Score insert error:', insertError);
+                if (updateError) {
+                    console.error('[Leaderboard] Score UPDATE error:', updateError);
+                    console.error('[Leaderboard] Update failed - RLS policy might be missing for UPDATE on scores table');
                 } else {
                     improved = true;
-                    console.log('[Leaderboard] Score saved successfully:', { dateKey, moves, timeMs, username: finalPlayerName });
+                    console.log('[Leaderboard] Score UPDATED successfully');
                 }
+                shouldInsert = false;
+            } else {
+                console.log('[Leaderboard] Score not improved, keeping existing');
+                shouldInsert = false; // Not improved
             }
-
-            // Fetch new leaderboard
-            const newEntries = await getLeaderboard(dateKey, finalPlayerName);
-            const playerRank = newEntries.findIndex(e => e.name === finalPlayerName) + 1;
-            
-            return {
-                rank: playerRank || 0,
-                entries: newEntries,
-                improved
-            };
         }
+
+        if (shouldInsert) {
+            console.log('[Leaderboard] Inserting new score...');
+            const { error: insertError, data: insertData } = await supabase.from('scores').insert({
+                user_id: user.id,
+                username: finalPlayerName,
+                date_key: dateKey,
+                moves,
+                time_ms: timeMs
+            }).select();
+            
+            if (insertError) {
+                console.error('[Leaderboard] Score INSERT error:', insertError);
+                console.error('[Leaderboard] Insert context:', { userId: user.id, dateKey, moves, timeMs });
+            } else {
+                improved = true;
+                console.log('[Leaderboard] Score INSERTED successfully:', insertData);
+            }
+        }
+
+        // Fetch new leaderboard
+        const newEntries = await getLeaderboard(dateKey, finalPlayerName);
+        const playerRank = newEntries.findIndex(e => e.name === finalPlayerName) + 1;
+        
+        console.log('[Leaderboard] Final result:', { rank: playerRank, totalEntries: newEntries.length, improved });
+        
+        return {
+            rank: playerRank || 0,
+            entries: newEntries,
+            improved
+        };
     } catch (err) {
         console.error("[Leaderboard] Supabase submit error:", err);
     }

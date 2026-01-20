@@ -95,39 +95,70 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, lang }) =
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={lang === 'tr' ? '🛒 Mağaza' : '🛒 Shop'}>
             <div className="space-y-4">
-                {/* Coin Balance */}
+                {/* Coin Balance - Premium Glass */}
                 <div
-                    className="flex justify-center items-center gap-2 p-3 rounded-lg"
-                    style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
+                    className="flex justify-center items-center gap-3 p-4 rounded-2xl relative overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)',
+                        border: '1px solid rgba(251, 191, 36, 0.3)',
+                        boxShadow: '0 0 30px rgba(251, 191, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                    }}
                 >
-                    <span className="text-2xl">🪙</span>
-                    <span className="text-2xl font-bold font-mono" style={{ color: 'var(--color-warning)' }}>
+                    <span className="text-3xl animate-pulse">🪙</span>
+                    <span
+                        className="text-3xl font-black font-mono"
+                        style={{
+                            color: '#fbbf24',
+                            textShadow: '0 0 20px rgba(251, 191, 36, 0.5)'
+                        }}
+                    >
                         {coins.toLocaleString()}
                     </span>
-                    <span className="text-sm opacity-60">{lang === 'tr' ? 'coin' : 'coins'}</span>
+                    <span className="text-sm text-slate-400">{lang === 'tr' ? 'coin' : 'coins'}</span>
                 </div>
 
-                {/* Purchase Message */}
+                {/* Purchase Message - Animated */}
                 {purchaseMessage && (
                     <div
-                        className="text-center py-2 rounded-lg animate-pulse text-sm font-bold"
-                        style={{ backgroundColor: 'var(--color-bg-secondary)' }}
+                        className="text-center py-3 rounded-xl text-sm font-bold animate-pulse"
+                        style={{
+                            background: purchaseMessage.includes('✅')
+                                ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.15) 100%)'
+                                : 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%)',
+                            border: purchaseMessage.includes('✅')
+                                ? '1px solid rgba(34, 197, 94, 0.3)'
+                                : '1px solid rgba(239, 68, 68, 0.3)',
+                            color: purchaseMessage.includes('✅') ? '#86efac' : '#fca5a5'
+                        }}
                     >
                         {purchaseMessage}
                     </div>
                 )}
 
-                {/* Tabs */}
-                <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+                {/* Tabs - Premium Glass Segmented Control */}
+                <div
+                    className="flex gap-1 p-1 rounded-xl"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                    }}
+                >
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${activeTab === tab.key ? 'shadow-md' : ''
-                                }`}
+                            className="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-300"
                             style={{
-                                backgroundColor: activeTab === tab.key ? 'var(--color-accent-1)' : 'transparent',
-                                color: activeTab === tab.key ? 'var(--color-bg-primary)' : 'var(--color-text-muted)',
+                                background: activeTab === tab.key
+                                    ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%)'
+                                    : 'transparent',
+                                color: activeTab === tab.key ? '#22d3ee' : '#64748b',
+                                border: activeTab === tab.key
+                                    ? '1px solid rgba(34, 211, 238, 0.4)'
+                                    : '1px solid transparent',
+                                boxShadow: activeTab === tab.key
+                                    ? '0 0 15px rgba(34, 211, 238, 0.15)'
+                                    : 'none'
                             }}
                         >
                             {tab.icon} {tab.label}

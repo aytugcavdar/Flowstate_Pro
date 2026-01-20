@@ -111,22 +111,51 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     </div>
                 </div>
 
-                {/* Player Rank Banner */}
+                {/* Player Rank Banner - Premium Glass Style */}
                 {playerRank && (
-                    <div className={`p-4 rounded-xl text-center transition-all
-            ${justSubmitted
-                            ? 'bg-gradient-to-r from-cyan-600/30 to-fuchsia-600/30 border-2 border-cyan-500 animate-pulse'
-                            : 'bg-slate-800/50 border border-slate-700'}`}
+                    <div
+                        className={`p-5 rounded-2xl text-center transition-all relative overflow-hidden`}
+                        style={{
+                            background: justSubmitted
+                                ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.2) 0%, rgba(139, 92, 246, 0.15) 50%, rgba(217, 70, 239, 0.2) 100%)'
+                                : 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                            border: justSubmitted
+                                ? '1px solid rgba(34, 211, 238, 0.5)'
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                            boxShadow: justSubmitted
+                                ? '0 0 30px rgba(34, 211, 238, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                                : '0 8px 32px rgba(0, 0, 0, 0.3)'
+                        }}
                     >
-                        <div className="text-sm text-slate-400">
+                        {/* Animated gradient border for new scores */}
+                        {justSubmitted && (
+                            <div
+                                className="absolute inset-0 rounded-2xl rainbow-border opacity-30"
+                                style={{ padding: '2px' }}
+                            />
+                        )}
+
+                        <div className="text-sm text-slate-400 uppercase tracking-wider mb-1">
                             {lang === 'tr' ? 'Senin Sıralaman' : 'Your Rank'}
                         </div>
-                        <div className="text-4xl font-bold text-white">
+                        <div
+                            className="text-5xl font-black"
+                            style={{
+                                background: playerRank <= 3
+                                    ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
+                                    : 'linear-gradient(135deg, #22d3ee 0%, #8b5cf6 50%, #e879f9 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                                filter: 'drop-shadow(0 0 20px rgba(34, 211, 238, 0.4))'
+                            }}
+                        >
                             {getMedalEmoji(playerRank)} {playerRank}{getRankSuffix(playerRank)}
                         </div>
                         {justSubmitted && (
-                            <div className="text-xs text-green-400 mt-1">
-                                ✓ {lang === 'tr' ? 'Skor kaydedildi!' : 'Score submitted!'}
+                            <div className="flex items-center justify-center gap-2 text-sm text-green-400 mt-2 animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-green-400" />
+                                {lang === 'tr' ? 'Skor kaydedildi!' : 'Score submitted!'}
                             </div>
                         )}
                     </div>

@@ -49,6 +49,10 @@ create policy "Users can insert their own scores."
   on public.scores for insert
   with check ( auth.uid() = user_id );
 
+create policy "Users can update their own scores."
+  on public.scores for update
+  using ( auth.uid() = user_id );
+
 -- Create an index for faster leaderboard queries
 create index scores_date_idx on public.scores (date_key);
 create index scores_moves_time_idx on public.scores (date_key, moves asc, time_ms asc);

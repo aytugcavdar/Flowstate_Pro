@@ -187,6 +187,9 @@ create policy "Scores are viewable by everyone"
 create policy "Users can insert their own scores"
   on public.scores for insert with check (auth.uid() = user_id);
 
+create policy "Users can update their own scores"
+  on public.scores for update using (auth.uid() = user_id);
+
 -- Performance indexes for leaderboard queries
 create index if not exists scores_date_idx on public.scores (date_key);
 create index if not exists scores_mode_idx on public.scores (mode);
