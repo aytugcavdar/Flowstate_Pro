@@ -8,6 +8,7 @@ import { getStoredUsername, changeUsername, parseUsername } from '../services/us
 import { setMasterVolume, setSFXVolume, setMusicVolume } from '../services/audio';
 import { playSound } from '../services/audio';
 import { triggerHaptic, isHapticSupported } from '../services/hapticService';
+import { performSoftReset, performHardReset, getStorageInfo, exportUserData } from '../services/dataMigrationService';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -455,33 +456,79 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
                 {/* Data Tab */}
                 {activeTab === 'data' && (
                     <div className="space-y-4 p-3 bg-slate-800/30 rounded-lg">
-                        <div className="text-sm text-slate-400 text-center py-4">
+                        <div className="text-sm text-slate-400 text-center py-2">
                             {lang === 'tr'
                                 ? 'Tüm veriler tarayıcınızda yerel olarak saklanır.'
                                 : 'All data is stored locally in your browser.'}
                         </div>
 
-                        <div className="space-y-2 text-xs font-mono text-slate-500">
+                        <div className="space-y-2 text-xs font-mono text-slate-500 bg-slate-800/50 p-3 rounded-lg">
                             <div className="flex justify-between">
                                 <span>localStorage</span>
-                                <span>{(JSON.stringify(localStorage).length / 1024).toFixed(1)} KB</span>
+                                <span>{getStorageInfo().estimatedSize}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>{lang === 'tr' ? 'Kayıtlı veri sayısı' : 'Stored items'}</span>
+                                <span>{getStorageInfo().keyCount}</span>
                             </div>
                         </div>
 
+                        {/* Soft Reset - keeps settings and username */}
+                        <button
+                            onClick={() => {
+                                if (confirm(lang === 'tr'
+                                    ? 'İlerleme sıfırlanacak. Ayarlar ve username korunacak. Devam?'
+                                    : 'Progress will be reset. Settings and username will be kept. Continue?')) {
+                                    performSoftReset();
+                                    window.location.reload();
+                                }
+                            }}
+                            className="w-full py-3 rounded-lg font-mono text-sm bg-amber-600/20 border border-amber-500/50 text-amber-400 hover:bg-amber-600/30 transition-all"
+                        >
+                            🔄 {lang === 'tr' ? 'İlerlemeyi Sıfırla' : 'Reset Progress'}
+                            <div className="text-[10px] text-amber-400/60 mt-1">
+                                {lang === 'tr' ? 'Ayarlar ve isim korunur' : 'Keeps settings & username'}
+                            </div>
+                        </button>
+
+                        {/* Hard Reset - clears everything */}
                         <button
                             onClick={handleReset}
                             className={`w-full py-3 rounded-lg font-mono text-sm transition-all
                 ${showResetConfirm
                                     ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+                                    : 'bg-red-600/20 border border-red-500/50 text-red-400 hover:bg-red-600/30'}`}
                         >
                             {showResetConfirm
                                 ? (lang === 'tr' ? '⚠️ ONAYLAMAK İÇİN TEKRAR TIKLA' : '⚠️ CLICK AGAIN TO CONFIRM')
-                                : (lang === 'tr' ? '🗑️ Tüm Verileri Sil' : '🗑️ Reset All Data')}
+                                : (lang === 'tr' ? '🗑️ Tüm Verileri Sil' : '🗑️ Delete All Data')}
+                            {!showResetConfirm && (
+                                <div className="text-[10px] text-red-400/60 mt-1">
+                                    {lang === 'tr' ? 'Her şey silinir!' : 'Erases everything!'}
+                                </div>
+                            )}
+                        </button>
+
+                        {/* Export Data */}
+                        <button
+                            onClick={() => {
+                                const data = exportUserData();
+                                const blob = new Blob([data], { type: 'application/json' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `flowstate_backup_${new Date().toISOString().split('T')[0]}.json`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                playSound('power');
+                            }}
+                            className="w-full py-2 rounded-lg font-mono text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 transition-all"
+                        >
+                            📁 {lang === 'tr' ? 'Verileri Dışa Aktar' : 'Export Data'}
                         </button>
 
                         <div className="text-center text-xs text-slate-600 pt-4 border-t border-slate-700">
-                            FLOWSTATE v1.0.0<br />
+                            FLOWSTATE v2.0.0<br />
                             Made with ⚡ by Netrunners
                         </div>
                     </div>

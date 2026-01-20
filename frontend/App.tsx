@@ -14,6 +14,7 @@ import { initExperiments } from './services/abTestService';
 import { checkReferralBonuses, checkUrlForReferral } from './services/referralService';
 import { haptic } from './services/hapticService';
 import { startBackgroundPreload } from './services/preloadService';
+import { checkAndMigrateData } from './services/dataMigrationService';
 import { Tile } from './components/Tile';
 import { Modal } from './components/Modal';
 import { CyberpunkOverlay } from './components/CyberpunkOverlay';
@@ -114,6 +115,14 @@ const App: React.FC = () => {
 
     // Initialize services on mount
     useEffect(() => {
+        // Check and perform data migration if needed (MUST be first)
+        const migration = checkAndMigrateData();
+        if (migration.migrated) {
+            console.log(`[App] Data migrated from v${migration.fromVersion}. Page will reload.`);
+            window.location.reload();
+            return;
+        }
+
         // Initialize notifications
         initNotifications();
 
