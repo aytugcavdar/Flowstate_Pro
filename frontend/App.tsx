@@ -147,7 +147,30 @@ const App: React.FC = () => {
     // Load Stats, Theme, Missions + Log User Visit
     useEffect(() => {
         const savedStats = localStorage.getItem(STORAGE_KEY_STATS);
-        if (savedStats) setStats(JSON.parse(savedStats));
+        if (savedStats) {
+            const loadedStats = JSON.parse(savedStats);
+
+            // Streak validation: Check if streak should be reset
+            // If lastPlayed is not yesterday or today, reset streak to 0
+            if (loadedStats.lastPlayed) {
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+                // If last played is neither today nor yesterday, reset streak
+                if (loadedStats.lastPlayed !== todayKey && loadedStats.lastPlayed !== yesterdayKey) {
+                    console.log('[App] Streak broken! Last played:', loadedStats.lastPlayed, 'Resetting to 0');
+                    loadedStats.streak = 0;
+                    // Save the reset streak
+                    localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(loadedStats));
+                }
+            }
+
+            setStats(loadedStats);
+        }
 
         setCampaignProgress(getCampaignProgress());
 

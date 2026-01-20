@@ -17,6 +17,8 @@ export interface CloudProgress {
   total_wins: number;
   fastest_win_ms: number | null;
   consecutive_no_hint_wins: number;
+  current_streak: number;
+  max_streak: number;
   badges: string[];
 }
 
@@ -31,7 +33,9 @@ export interface CloudInventory {
   hints: number;
   undos: number;
   freezes: number;
+  time_extensions: number;
   coin_boosts: number;
+  multipliers: number;
 }
 
 export interface CloudCampaignLevel {
@@ -47,6 +51,53 @@ export interface GameSessionData {
   won: boolean;
   used_hint: boolean;
   powerups_used?: Record<string, number>;
+}
+
+// ============================================
+// TIMEZONE HELPERS
+// ============================================
+
+/**
+ * Get user's local timezone name (e.g., 'Europe/Istanbul')
+ */
+export function getUserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
+}
+
+/**
+ * Get user's local time as ISO string with timezone offset
+ * Example: '2026-01-20T04:33:06+03:00'
+ */
+export function getLocalTimeISO(): string {
+  const now = new Date();
+  const offset = -now.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const hours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+  const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+  
+  // Format: YYYY-MM-DDTHH:mm:ss+HH:MM
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  const second = String(now.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}${sign}${hours}:${minutes}`;
+}
+
+/**
+ * Get timezone metadata for database inserts
+ */
+export function getTimezoneMetadata() {
+  return {
+    local_time: getLocalTimeISO(),
+    user_timezone: getUserTimezone(),
+  };
 }
 
 // ============================================
@@ -123,6 +174,7 @@ export async function syncProgressToCloud(progress: CloudProgress): Promise<bool
       .upsert({
         id: userId,
         ...progress,
+        ...getTimezoneMetadata(),
         updated_at: new Date().toISOString()
       });
 
@@ -198,6 +250,7 @@ export async function syncEconomyToCloud(economy: CloudEconomy): Promise<boolean
       .upsert({
         id: userId,
         ...economy,
+        ...getTimezoneMetadata(),
         updated_at: new Date().toISOString()
       });
 
@@ -257,6 +310,7 @@ export async function syncInventoryToCloud(inventory: CloudInventory): Promise<b
       .upsert({
         id: userId,
         ...inventory,
+        ...getTimezoneMetadata(),
         updated_at: new Date().toISOString()
       });
 
@@ -318,6 +372,7 @@ export async function syncCampaignLevelToCloud(levelId: string, stars: number): 
           user_id: userId,
           level_id: levelId,
           stars: stars,
+          ...getTimezoneMetadata(),
           completed_at: new Date().toISOString()
         },
         {
@@ -360,7 +415,8 @@ export async function logGameSession(session: GameSessionData): Promise<boolean>
         time_ms: session.time_ms,
         won: session.won,
         used_hint: session.used_hint,
-        powerups_used: session.powerups_used || {}
+        powerups_used: session.powerups_used || {},
+        ...getTimezoneMetadata()
       });
 
     if (error) {

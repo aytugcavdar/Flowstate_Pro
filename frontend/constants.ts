@@ -1,6 +1,9 @@
 
 export const GRID_SIZE = 8;
 
+// App Version - Update this when releasing new versions
+export const APP_VERSION = '2.1.0';
+
 export const TILE_MAPPING: Record<string, number[]> = {
   // Connections for rotation 0: [Up, Right, Down, Left]
   'STRAIGHT': [1, 0, 1, 0], // |
@@ -26,3 +29,4 @@ export const STORAGE_KEY_STATS = 'flowstate_stats_v1';
 export const STORAGE_KEY_STATE = 'flowstate_gamestate_v4'; // Version bump
 export const STORAGE_KEY_THEME = 'flowstate_theme_cache_v1';
 export const STORAGE_KEY_PROFILE = 'flowstate_profile_v1';
+

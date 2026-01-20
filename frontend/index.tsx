@@ -12,7 +12,7 @@ setupGlobalErrorHandler();
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js')
         .then(reg => console.log('SW registered:', reg.scope))
         .catch(err => console.log('SW registration failed:', err));
     });

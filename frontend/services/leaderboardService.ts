@@ -8,6 +8,7 @@
 import { SeededRNG } from '../utils/rng';
 import { supabase, isSupabaseConfigured, DBScore } from './supabase';
 import { getOrCreateUsername, getStoredUsername } from './usernameService';
+import { getTimezoneMetadata } from './cloudSyncService';
 
 export interface LeaderboardEntry {
   rank: number;
@@ -239,6 +240,7 @@ export async function submitScore(
             const { error: profileError } = await supabase.from('profiles').upsert({ 
                 id: user.id, 
                 username: finalPlayerName,
+                ...getTimezoneMetadata(),
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
             
@@ -262,7 +264,7 @@ export async function submitScore(
                     // Update existing score (improved)
                     const { error: updateError } = await supabase
                         .from('scores')
-                        .update({ moves, time_ms: timeMs, username: finalPlayerName })
+                        .update({ moves, time_ms: timeMs, username: finalPlayerName, ...getTimezoneMetadata() })
                         .eq('id', existing.id);
                     
                     if (updateError) {
@@ -282,7 +284,8 @@ export async function submitScore(
                     username: finalPlayerName,
                     date_key: dateKey,
                     moves,
-                    time_ms: timeMs
+                    time_ms: timeMs,
+                    ...getTimezoneMetadata()
                 });
                 
                 if (insertError) {

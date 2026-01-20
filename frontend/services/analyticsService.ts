@@ -5,7 +5,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabase';
-import { ensureAuthenticated } from './cloudSyncService';
+import { ensureAuthenticated, getTimezoneMetadata } from './cloudSyncService';
 
 // ============================================
 // TYPES
@@ -184,6 +184,7 @@ export async function logUserVisit(): Promise<boolean> {
         is_mobile: visitData.isMobile,
         referrer: visitData.referrer,
         page_url: visitData.pageUrl,
+        ...getTimezoneMetadata()
       });
     
     if (error) {
@@ -214,6 +215,7 @@ export async function logAnalyticsEvent(event: AnalyticsEvent): Promise<boolean>
         event_type: event.eventType,
         event_data: event.eventData,
         page_url: event.pageUrl || window.location.href,
+        ...getTimezoneMetadata()
       });
     
     if (error) {

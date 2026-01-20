@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { useTheme, ThemeId } from '../contexts/ThemeContext';
 import { THEMES } from '../constants/themes';
 import { TRANSLATIONS, Language } from '../constants/translations';
+import { APP_VERSION } from '../constants';
 import { GameSettings, loadSettings, saveSettings, resetSettings, AnimationLevel, HapticIntensity } from '../services/settingsService';
 import { getStoredUsername, changeUsername, parseUsername } from '../services/usernameService';
 import { setMasterVolume, setSFXVolume, setMusicVolume } from '../services/audio';
@@ -528,7 +529,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
                         </button>
 
                         <div className="text-center text-xs text-slate-600 pt-4 border-t border-slate-700">
-                            FLOWSTATE v2.0.0<br />
+                            FLOWSTATE v{APP_VERSION}<br />
                             Made with ⚡ by Netrunners
                         </div>
                     </div>

@@ -135,7 +135,7 @@ export const checkBadgesOnWin = (
         }
     }
 
-    saveProfile(p);
+    saveProfile(p, mode === 'DAILY' ? streak + 1 : undefined);
     return { newProfile: p, newBadges, xpGained, newCompletedMissions };
 };
 
@@ -181,7 +181,7 @@ export const getProfile = (): PlayerProfile => {
     }
 };
 
-export const saveProfile = (profile: PlayerProfile) => {
+export const saveProfile = (profile: PlayerProfile, streak?: number) => {
     localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(profile));
     
     // Sync to cloud (fire and forget)
@@ -191,6 +191,8 @@ export const saveProfile = (profile: PlayerProfile) => {
         total_wins: profile.totalWins,
         fastest_win_ms: profile.fastestWinMs === Infinity ? null : profile.fastestWinMs,
         consecutive_no_hint_wins: profile.consecutiveNoHintWins,
+        current_streak: streak ?? 0,
+        max_streak: streak ?? 0, // Max streak should be tracked separately
         badges: profile.badges,
     };
     syncProgressToCloud(cloudData).catch(err => console.warn('[Progression] Cloud sync failed:', err));
