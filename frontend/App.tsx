@@ -391,7 +391,7 @@ const App: React.FC = () => {
             if (mode === 'DAILY') {
                 // Use stored username from usernameService (where UsernameModal saves it)
                 const storedName = getStoredUsername();
-                submitScore(currentKey, moves, gameTimeMs, storedName || undefined)
+                submitScore(currentKey, moves, gameTimeMs, storedName || undefined, 'daily')
                     .then(() => console.log('[App] Score submitted automatically'))
                     .catch(err => console.error('[App] Auto-submit failed:', err));
             }
@@ -742,6 +742,7 @@ const App: React.FC = () => {
                 // Only pass score if game is won today and it's daily mode
                 playerMoves={isWon && mode === 'DAILY' ? moves : undefined}
                 playerTime={isWon && mode === 'DAILY' ? gameTimeMs : undefined}
+                mode={mode === 'DAILY' ? 'daily' : mode.toLowerCase()}
             />
 
             <DailyRewardModal

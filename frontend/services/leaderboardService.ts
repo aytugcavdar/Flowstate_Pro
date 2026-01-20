@@ -146,7 +146,7 @@ export async function hasPlayedToday(dateKey: string): Promise<boolean> {
 /**
  * Get leaderboard for a specific day
  */
-export async function getLeaderboard(dateKey: string, playerName: string = 'YOU'): Promise<LeaderboardEntry[]> {
+export async function getLeaderboard(dateKey: string, playerName: string = 'YOU', mode: string = 'daily'): Promise<LeaderboardEntry[]> {
   // SUPABASE LOGIC
   const configured = isSupabaseConfigured();
   console.log('[Leaderboard] Configured:', configured, 'Supabase Client:', !!supabase);
@@ -157,6 +157,7 @@ export async function getLeaderboard(dateKey: string, playerName: string = 'YOU'
         .from('scores')
         .select('username, moves, time_ms')
         .eq('date_key', dateKey)
+        .eq('mode', mode)
         .order('moves', { ascending: true })
         .order('time_ms', { ascending: true })
         .limit(50);
@@ -206,7 +207,8 @@ export async function submitScore(
   dateKey: string, 
   moves: number, 
   timeMs: number, 
-  playerName?: string
+  playerName?: string,
+  mode: string = 'daily'
 ): Promise<{ rank: number; entries: LeaderboardEntry[]; improved: boolean }> {
     
   // Priority: 1) passed playerName, 2) stored username from UsernameModal, 3) generate new
@@ -252,7 +254,8 @@ export async function submitScore(
             username: finalPlayerName, 
             dateKey, 
             moves, 
-            timeMs 
+            timeMs,
+            mode
         });
 
         // Always sync profile username first (ensures profile exists before score insert)
@@ -276,6 +279,7 @@ export async function submitScore(
             .select('*')
             .eq('user_id', user.id)
             .eq('date_key', dateKey)
+            .eq('mode', mode)
             .single();
 
         if (selectError && selectError.code !== 'PGRST116') {
@@ -316,7 +320,8 @@ export async function submitScore(
                 username: finalPlayerName,
                 date_key: dateKey,
                 moves,
-                time_ms: timeMs
+                time_ms: timeMs,
+                mode
             }).select();
             
             if (insertError) {
@@ -329,7 +334,7 @@ export async function submitScore(
         }
 
         // Fetch new leaderboard
-        const newEntries = await getLeaderboard(dateKey, finalPlayerName);
+        const newEntries = await getLeaderboard(dateKey, finalPlayerName, mode);
         const playerRank = newEntries.findIndex(e => e.name === finalPlayerName) + 1;
         
         console.log('[Leaderboard] Final result:', { rank: playerRank, totalEntries: newEntries.length, improved });

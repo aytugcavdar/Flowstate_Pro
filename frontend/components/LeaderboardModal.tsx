@@ -20,6 +20,7 @@ interface LeaderboardModalProps {
     playerMoves?: number;
     playerTime?: number;
     onScoreSubmit?: (rank: number) => void;
+    mode?: string;
 }
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
@@ -29,7 +30,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     dateKey,
     playerMoves,
     playerTime,
-    onScoreSubmit
+    onScoreSubmit,
+    mode = 'daily'
 }) => {
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [playerRank, setPlayerRank] = useState<number | null>(null);
@@ -49,7 +51,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
         // If player has a score to submit
         if (playerMoves !== undefined && playerTime !== undefined) {
-            const result = await submitScore(dateKey, playerMoves, playerTime, playerName);
+            const result = await submitScore(dateKey, playerMoves, playerTime, playerName, mode);
             setEntries(result.entries);
             setPlayerRank(result.rank);
             if (result.improved) {
@@ -59,7 +61,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             }
         } else {
             // Just viewing
-            const data = await getLeaderboard(dateKey, playerName);
+            const data = await getLeaderboard(dateKey, playerName, mode);
             setEntries(data);
             const playerEntry = data.find(e => e.isPlayer);
             setPlayerRank(playerEntry?.rank || null);
