@@ -63,7 +63,8 @@ const App: React.FC = () => {
     const currentKey = useMemo(() => {
         if (mode === 'DAILY') {
             const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            // Use UTC to ensure everyone sees the same global daily leaderboard
+            return now.toISOString().split('T')[0];
         }
         if (mode === 'CAMPAIGN' && campaignLevel) {
             return campaignLevel.seed;

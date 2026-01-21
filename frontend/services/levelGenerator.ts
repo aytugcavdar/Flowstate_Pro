@@ -39,6 +39,16 @@ function getTeeRotation(sides: number[]): number {
     }
 }
 
+// Fisher-Yates Shuffle for deterministic randomization
+function shuffle<T>(array: T[], rng: SeededRNG): T[] {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rng.next() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
 // --- Pathfinding ---
 
 function findPath(
@@ -56,11 +66,22 @@ function findPath(
     let iterations = 0;
     while (queue.length > 0 && iterations < 600) {
         iterations++;
-        queue.sort((a, b) => {
-            const distA = getDistance(a.pos, end);
-            const distB = getDistance(b.pos, end);
-            return (distA - distB) + (rng.next() * 2 - 1);
+        iterations++;
+        // Use a deterministic stable shuffle for queue if needed, or just standard sort
+        // The original sort used rng in comparator which is bad. 
+        // We should just pop the best candidate deterministically. 
+        // But to keep some randomness in search order for equal costs:
+        // We can just shuffle the queue occasionally? 
+        // Actually the original code sorted by: (distA - distB) + (noise).
+        // This is a "fuzzy" A*. It's okay-ish if we use a stable sort.
+        // But array.sort is not stable with random comparator.
+        // Better approach: calculate score for all, then sort by score.
+        queue.forEach(item => {
+            const dist = getDistance(item.pos, end);
+            // Apply noise ONCE per item
+            if (!(item as any)._score) (item as any)._score = dist + (rng.next() * 2 - 1);
         });
+        queue.sort((a, b) => (a as any)._score - (b as any)._score);
 
         const { pos, path } = queue.shift()!;
 
@@ -68,7 +89,7 @@ function findPath(
             return path;
         }
 
-        const dirs = [0, 1, 2, 3].sort(() => rng.next() - 0.5);
+        const dirs = shuffle([0, 1, 2, 3], rng);
 
         for (const d of dirs) {
             const nr = pos.r + DIRECTIONS[d][0];
@@ -277,7 +298,7 @@ function addSideQuest(rng: SeededRNG, grid: Grid, path: GridPos[]): boolean {
     const target = candidates[startIdx];
     
     // Try all 4 directions for a branch
-    const dirs = [0, 1, 2, 3].sort(() => rng.next() - 0.5);
+    const dirs = shuffle([0, 1, 2, 3], rng);
     
     for (const d of dirs) {
         const r1 = target.r + DIRECTIONS[d][0];
