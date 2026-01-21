@@ -59,12 +59,30 @@ const App: React.FC = () => {
     const [campaignLevel, setCampaignLevel] = useState<CampaignLevel | null>(null);
     const [campaignProgress, setCampaignProgress] = useState<CampaignProgress>(getCampaignProgress());
 
+    // State to track the current local date (auto-updates at midnight)
+    const [todayDateKey, setTodayDateKey] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    });
+
+    // Check for day change every minute
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const now = new Date();
+            const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            if (current !== todayDateKey) {
+                console.log('[App] Midnight detected! Updating date key to:', current);
+                setTodayDateKey(current);
+            }
+        }, 60000);
+        return () => clearInterval(timer);
+    }, [todayDateKey]);
+
     // Computed Game Key
     const currentKey = useMemo(() => {
         if (mode === 'DAILY') {
-            const now = new Date();
-            // Use UTC to ensure everyone sees the same global daily leaderboard
-            return now.toISOString().split('T')[0];
+            // Use Local Time so it matches the user's real-world day (and rewards)
+            return todayDateKey;
         }
         if (mode === 'CAMPAIGN' && campaignLevel) {
             return campaignLevel.seed;
