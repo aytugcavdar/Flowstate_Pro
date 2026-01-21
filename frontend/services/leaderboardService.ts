@@ -153,6 +153,7 @@ export async function getLeaderboard(dateKey: string, playerName: string = 'YOU'
 
   if (configured && supabase) {
     try {
+      console.log(`[Leaderboard] Fetching for Date: ${dateKey}, Mode: ${mode}`);
       const { data, error } = await supabase
         .from('scores')
         .select('username, moves, time_ms')
@@ -162,7 +163,11 @@ export async function getLeaderboard(dateKey: string, playerName: string = 'YOU'
         .order('time_ms', { ascending: true })
         .limit(50);
         
-      console.log('[Leaderboard] Fetch Result:', { data, error });
+      console.log('[Leaderboard] Raw Supabase Response:', { 
+        count: data?.length, 
+        firstEntry: data?.[0], 
+        error 
+      });
 
       if (!error && data) {
          return data.map((d, index) => ({
